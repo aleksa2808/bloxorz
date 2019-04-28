@@ -16,3 +16,7 @@ project/plugins/project/
 .project
 .classpath
 .cache
+
+# Metals VSCode
+.metals/
+.bloop/
