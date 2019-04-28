@@ -1,3 +1,5 @@
+package bloxorz
+
 object main {
   val actions =
     Map[Int, () => Boolean](1 -> handleOne, 2 -> handleTwo, 3 -> handleThree)
