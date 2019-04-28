@@ -1,8 +1,6 @@
 object main {
-  val actions = Map[Int, () => Boolean](
-    1 -> handleOne,
-    2 -> handleTwo,
-    3 -> handleThree)
+  val actions =
+    Map[Int, () => Boolean](1 -> handleOne, 2 -> handleTwo, 3 -> handleThree)
 
   def handleOne(): Boolean = {
     println("selected 1")
