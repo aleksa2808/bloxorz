@@ -26,7 +26,9 @@ object main {
     val levelFiles = getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
 
     println("Choose level:")
-    levelFiles.foreach(file => println("  " + file.getName()))
+    levelFiles
+      .sortBy(f => f.getName())
+      .foreach(f => println("  " + f.getName()))
 
     def loop: Level = {
       val input = scala.io.StdIn.readLine()
