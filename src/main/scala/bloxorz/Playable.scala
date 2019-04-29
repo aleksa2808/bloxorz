@@ -5,9 +5,6 @@ case object Win extends GameResult
 case object Lose extends GameResult
 
 trait Playable extends GameDef {
-
-  def done(b: Block): Boolean = b.b1 == goal && b.b2 == goal
-
   def readAction: Char = {
     println("""|Please select one of the following:
                  |  a s w d""".stripMargin)

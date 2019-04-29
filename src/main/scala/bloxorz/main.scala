@@ -1,15 +1,18 @@
 package bloxorz
 
 object main {
-  class PlayableLevel(val filePath: String)
+  class Level(val filePath: String)
       extends Playable
-      with FileParserTerrain {}
+      with Solver
+      with FileParserTerrain
+
+  val levelFilePath = "/home/murtaugh/master/fp/level.txt"
+  val level = new Level(levelFilePath)
 
   val actions =
     Map[Int, () => Unit](1 -> handleOne, 2 -> handleTwo)
 
   def handleOne() = {
-    val level = new PlayableLevel("/home/murtaugh/master/fp/level.txt")
     level.play match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
@@ -17,15 +20,14 @@ object main {
   }
 
   def handleTwo() = {
-    println("selected 2")
-    true
+    println(level.solution)
   }
 
   def readOption: Int = {
     println("""|Please select one of the following:
              |  1 - play 
-             |  2 - two
-             |  3 - quit""".stripMargin)
+             |  2 - solve
+             |  0 - quit""".stripMargin)
     scala.io.StdIn.readInt()
   }
 
@@ -38,8 +40,7 @@ object main {
   }
 
   def main(args: Array[String]) {
-    val quitOption = 3
     def inputStream: Stream[Int] = readOption #:: inputStream
-    inputStream.takeWhile(_ != quitOption).map(x => menu(x)).toList
+    inputStream.takeWhile(_ != 0).map(x => menu(x)).toList
   }
 }

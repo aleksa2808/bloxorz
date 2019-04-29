@@ -58,5 +58,7 @@ trait GameDef {
     def isLegal: Boolean = terrain(b1) && terrain(b2)
   }
 
+  def done(b: Block): Boolean = b.b1 == goal && b.b2 == goal
+
   def printLevel(b: Block)
 }

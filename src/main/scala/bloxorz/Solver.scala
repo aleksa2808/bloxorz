@@ -1,8 +1,6 @@
 package bloxorz
 
 trait Solver extends GameDef {
-  def done(b: Block): Boolean = b.b1 == goal && b.b2 == goal
-
   def neighborsWithHistory(
       b: Block,
       history: List[Move]
