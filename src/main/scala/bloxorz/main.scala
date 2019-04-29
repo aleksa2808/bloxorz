@@ -1,43 +1,44 @@
 package bloxorz
 
 object main {
-  val actions =
-    Map[Int, () => Boolean](1 -> handleOne, 2 -> handleTwo, 3 -> handleThree)
-
-  def handleOne(): Boolean = {
-    println("selected 1")
-    true
+  object Level1 extends Playable with FileParserTerrain {
+    val filePath = "/home/murtaugh/master/fp/level.txt"
   }
 
-  def handleTwo(): Boolean = {
+  val actions =
+    Map[Int, () => Unit](1 -> handleOne, 2 -> handleTwo)
+
+  def handleOne() = {
+    Level1.play match {
+      case true  => println("You win!")
+      case false => println("You lose!")
+    }
+  }
+
+  def handleTwo() = {
     println("selected 2")
     true
   }
 
-  def handleThree(): Boolean = {
-    println("selected quit")
-    false
-  }
-
   def readOption: Int = {
     println("""|Please select one of the following:
-             |  1 - one 
+             |  1 - play 
              |  2 - two
              |  3 - quit""".stripMargin)
     scala.io.StdIn.readInt()
   }
 
-  def menu(option: Int): Boolean = {
+  def menu(option: Int) = {
     actions.get(option) match {
       case Some(f) => f()
       case None =>
         println("Sorry, that command is not recognized")
-        true
     }
   }
 
   def main(args: Array[String]) {
+    val quitOption = 3
     def inputStream: Stream[Int] = readOption #:: inputStream
-    inputStream.takeWhile(x => menu(x)).toList
+    inputStream.takeWhile(_ != quitOption).map(x => menu(x)).toList
   }
 }
