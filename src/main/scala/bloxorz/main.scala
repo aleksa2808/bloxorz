@@ -1,17 +1,18 @@
 package bloxorz
 
 object main {
-  object Level1 extends Playable with FileParserTerrain {
-    val filePath = "/home/murtaugh/master/fp/level.txt"
-  }
+  class PlayableLevel(val filePath: String)
+      extends Playable
+      with FileParserTerrain {}
 
   val actions =
     Map[Int, () => Unit](1 -> handleOne, 2 -> handleTwo)
 
   def handleOne() = {
-    Level1.play match {
-      case true  => println("You win!")
-      case false => println("You lose!")
+    val level = new PlayableLevel("/home/murtaugh/master/fp/level.txt")
+    level.play match {
+      case Win  => println("You win!")
+      case Lose => println("You lose!")
     }
   }
 

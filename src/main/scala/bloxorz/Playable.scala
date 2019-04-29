@@ -1,6 +1,11 @@
 package bloxorz
 
+sealed abstract class GameResult
+case object Win extends GameResult
+case object Lose extends GameResult
+
 trait Playable extends GameDef {
+
   def done(b: Block): Boolean = b.b1 == goal && b.b2 == goal
 
   def readAction: Char = {
@@ -9,23 +14,26 @@ trait Playable extends GameDef {
     scala.io.StdIn.readChar()
   }
 
+  def getNextBlock(block: Block) = readAction match {
+    case 'a' => block.left
+    case 's' => block.down
+    case 'w' => block.up
+    case 'd' => block.right
+    case _ => {
+      println("Invalid action.")
+      block
+    }
+  }
+
   def play = {
     def loop(block: Block): Boolean = {
       printLevel(block)
 
-      done(block) || block.isLegal && {
-        readAction match {
-          case 'a' => loop(block.left)
-          case 's' => loop(block.down)
-          case 'w' => loop(block.up)
-          case 'd' => loop(block.right)
-          case _ => {
-            println("Invalid action.")
-            loop(block)
-          }
-        }
-      }
+      done(block) || block.isLegal && loop(getNextBlock(block))
     }
-    loop(startBlock)
+    loop(startBlock) match {
+      case true  => Win
+      case false => Lose
+    }
   }
 }
