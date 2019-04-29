@@ -57,4 +57,6 @@ trait GameDef {
     def isStanding: Boolean = b1 == b2
     def isLegal: Boolean = terrain(b1) && terrain(b2)
   }
+
+  def printLevel(b: Block)
 }

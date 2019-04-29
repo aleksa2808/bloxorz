@@ -22,4 +22,17 @@ trait StringParserTerrain extends GameDef {
   lazy val startPos: Pos = findChar('S', vector)
   lazy val goal: Pos = findChar('T', vector)
 
+  def printLevel(b: Block) = {
+    val Block(b1, b2) = b
+    for (r <- 0 to vector.size - 1) {
+      for (c <- 0 to vector(r).size - 1) {
+        val here = Pos(r, c)
+        b1 == here || b2 == here match {
+          case true  => print('B')
+          case false => print(vector(r)(c))
+        }
+      }
+      print('\n')
+    }
+  }
 }

@@ -15,7 +15,7 @@ trait FileParserTerrain extends GameDef {
     Pos(y, x)
   }
 
-  lazy val levelVector: Vector[Vector[Char]] = {
+  private lazy val vector: Vector[Vector[Char]] = {
     val source = scala.io.Source.fromFile(filePath)
     try {
       val lines = source.getLines()
@@ -23,7 +23,21 @@ trait FileParserTerrain extends GameDef {
     } finally source.close()
   }
 
-  lazy val terrain: Terrain = terrainFunction(levelVector)
-  lazy val startPos: Pos = findChar('S', levelVector)
-  lazy val goal: Pos = findChar('T', levelVector)
+  lazy val terrain: Terrain = terrainFunction(vector)
+  lazy val startPos: Pos = findChar('S', vector)
+  lazy val goal: Pos = findChar('T', vector)
+
+  def printLevel(b: Block) = {
+    val Block(b1, b2) = b
+    for (r <- 0 to vector.size - 1) {
+      for (c <- 0 to vector(r).size - 1) {
+        val here = Pos(r, c)
+        b1 == here || b2 == here match {
+          case true  => print('B')
+          case false => print(vector(r)(c))
+        }
+      }
+      print('\n')
+    }
+  }
 }
