@@ -31,10 +31,9 @@ trait FileParserTerrain extends GameDef {
     val Block(b1, b2) = b
     for (r <- 0 to vector.size - 1) {
       for (c <- 0 to vector(r).size - 1) {
-        val here = Pos(r, c)
-        b1 == here || b2 == here match {
-          case true  => print('B')
-          case false => print(vector(r)(c))
+        Pos(r, c) match {
+          case here if b1 == here || b2 == here => print('B')
+          case _                                => print(vector(r)(c))
         }
       }
       print('\n')

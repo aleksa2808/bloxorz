@@ -1,4 +1,5 @@
 package bloxorz
+import scala.annotation.tailrec
 
 sealed abstract class GameResult
 case object Win extends GameResult
@@ -23,6 +24,7 @@ trait Playable extends GameDef {
   }
 
   def play = {
+    @tailrec
     def loop(block: Block): GameResult = {
       printLevel(block)
 
