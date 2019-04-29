@@ -37,6 +37,7 @@ object main {
   }
 
   def main(args: Array[String]) {
-    while (menu(readOption)) {}
+    def inputStream: Stream[Int] = readOption #:: inputStream
+    inputStream.takeWhile(x => menu(x)).toList
   }
 }

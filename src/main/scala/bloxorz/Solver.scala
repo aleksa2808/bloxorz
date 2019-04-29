@@ -10,11 +10,9 @@ trait Solver extends GameDef {
     def loop(
         legalNeighborList: List[(Block, Move)]
     ): Stream[(Block, List[Move])] = {
-      if (legalNeighborList.isEmpty) Stream.empty
-      else {
-        val b = legalNeighborList.head._1
-        val m = legalNeighborList.head._2
-        (b, m :: history) #:: loop(legalNeighborList.tail)
+      legalNeighborList match {
+        case List()       => Stream.empty
+        case (b, m) :: ts => (b, m :: history) #:: loop(legalNeighborList.tail)
       }
     }
     loop(b.legalNeighbors)
@@ -30,14 +28,16 @@ trait Solver extends GameDef {
       initial: Stream[(Block, List[Move])],
       explored: Set[Block]
   ): Stream[(Block, List[Move])] = {
-    if (initial.isEmpty) Stream.empty
-    else {
-      val more = newNeighborsOnly(
-        neighborsWithHistory(initial.head._1, initial.head._2),
-        explored
-      )
+    initial match {
+      case Stream() => Stream.empty
+      case (b, m) #:: ts => {
+        val more = newNeighborsOnly(
+          neighborsWithHistory(b, m),
+          explored
+        )
 
-      more #::: from(initial.tail #::: more, explored ++ (more map (_._1)))
+        more #::: from(ts #::: more, explored ++ (more map (_._1)))
+      }
     }
   }
 
