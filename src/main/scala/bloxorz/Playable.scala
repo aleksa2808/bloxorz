@@ -23,14 +23,15 @@ trait Playable extends GameDef {
   }
 
   def play = {
-    def loop(block: Block): Boolean = {
+    def loop(block: Block): GameResult = {
       printLevel(block)
 
-      done(block) || block.isLegal && loop(getNextBlock(block))
+      block match {
+        case block if done(block)   => Win
+        case block if block.isLegal => loop(getNextBlock(block))
+        case _                      => Lose
+      }
     }
-    loop(startBlock) match {
-      case true  => Win
-      case false => Lose
-    }
+    loop(startBlock)
   }
 }
