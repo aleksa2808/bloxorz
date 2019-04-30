@@ -5,25 +5,26 @@ import scala.annotation.tailrec
 
 object main {
   class Level(val filePath: String)
-      extends Playable
-      with Solvable
+      extends GameDef
       with FileParserTerrain
+      with Playable
+      with Solvable
 
   val actions =
-    Map[Int, () => Unit](1 -> playLevel, 2 -> solveLevel)
+    Map[String, () => Unit]("1" -> playLevel, "2" -> solveLevel)
 
-  def readOption(): Int = {
+  def readOption(): String = {
     println("""|Please select one of the following:
                |  1 - play 
                |  2 - solve
                |  0 - quit""".stripMargin)
-    scala.io.StdIn.readInt()
+    scala.io.StdIn.readLine()
   }
 
   @tailrec
   def mainMenu(): Unit = {
     readOption() match {
-      case 0 =>
+      case "0" =>
       case option =>
         actions.get(option) match {
           case Some(f) => f()
