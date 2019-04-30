@@ -1,8 +1,6 @@
 package bloxorz
 
-trait StringParserTerrain extends GameDef {
-  val level: String
-
+sealed trait ParserTerrain extends GameDef {
   val charMap = Map[Char, Field](
     'S' -> Start,
     'T' -> Goal,
@@ -25,8 +23,7 @@ trait StringParserTerrain extends GameDef {
     Pos(y, x)
   }
 
-  private lazy val vector: Vector[Vector[Char]] =
-    Vector(level.split("\n").map(str => Vector(str: _*)): _*)
+  protected val vector: Vector[Vector[Char]]
   assert(vector.forall(_.forall(c => charMap.isDefinedAt(c))))
 
   lazy val terrain: Terrain = terrainFunction(vector)
@@ -45,5 +42,24 @@ trait StringParserTerrain extends GameDef {
       }
       print('\n')
     }
+  }
+}
+
+trait StringParserTerrain extends ParserTerrain {
+  val level: String
+
+  protected final lazy val vector: Vector[Vector[Char]] =
+    Vector(level.split("\n").map(str => Vector(str: _*)): _*)
+}
+
+trait FileParserTerrain extends ParserTerrain {
+  val filePath: String
+
+  protected final lazy val vector: Vector[Vector[Char]] = {
+    val source = scala.io.Source.fromFile(filePath)
+    try {
+      val lines = source.getLines()
+      lines.map(line => Vector(line: _*)).toVector
+    } finally source.close()
   }
 }
