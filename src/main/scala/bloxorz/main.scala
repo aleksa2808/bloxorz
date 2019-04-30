@@ -12,7 +12,7 @@ object main {
   val actions =
     Map[Int, () => Unit](1 -> playLevel, 2 -> solveLevel)
 
-  def readOption: Int = {
+  def readOption(): Int = {
     println("""|Please select one of the following:
                |  1 - play 
                |  2 - solve
@@ -21,8 +21,8 @@ object main {
   }
 
   @tailrec
-  def mainMenu: Unit = {
-    readOption match {
+  def mainMenu(): Unit = {
+    readOption() match {
       case 0 =>
       case option =>
         actions.get(option) match {
@@ -30,7 +30,7 @@ object main {
           case None =>
             println("Invalid input")
         }
-        mainMenu
+        mainMenu()
     }
   }
 
@@ -40,17 +40,17 @@ object main {
   def chooseLevel(): Level = {
     val levelFiles = getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
 
-    def printAvailableLevels = {
+    def printAvailableLevels() = {
       println("Choose level:")
       levelFiles
         .sortBy(f => f.getName())
         .foreach(f => println("  " + f.getName()))
     }
 
-    printAvailableLevels
+    printAvailableLevels()
 
     @tailrec
-    def getLevel: Level = {
+    def getLevel(): Level = {
       val input = scala.io.StdIn.readLine()
       levelFiles.find(_.getName() == input) match {
         case Some(file) => {
@@ -59,17 +59,17 @@ object main {
         }
         case None => {
           println("Invalid input")
-          printAvailableLevels
-          getLevel
+          printAvailableLevels()
+          getLevel()
         }
       }
     }
-    getLevel
+    getLevel()
   }
 
   def playLevel() = {
     val level = chooseLevel()
-    level.play match {
+    level.play() match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }
@@ -81,6 +81,6 @@ object main {
   }
 
   def main(args: Array[String]) {
-    mainMenu
+    mainMenu()
   }
 }

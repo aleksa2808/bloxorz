@@ -6,7 +6,7 @@ case object Win extends GameResult
 case object Lose extends GameResult
 
 trait Playable extends GameDef {
-  def readAction: Char = {
+  def readAction(): Char = {
     println("""|Please select one of the following:
                  |  a s w d""".stripMargin)
     scala.io.StdIn.readChar()
@@ -23,7 +23,7 @@ trait Playable extends GameDef {
     }
   }
 
-  def play = {
+  def play() = {
     @tailrec
     def loop(block: Block): GameResult = {
       printLevel(block)
