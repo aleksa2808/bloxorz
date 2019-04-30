@@ -63,7 +63,8 @@ trait GameDef {
     def neighbors: List[(Block, Move)] =
       List((left, Left), (right, Right), (up, Up), (down, Down))
 
-    def legalNeighbors: List[(Block, Move)] = neighbors.filter(_._1.isLegal)
+    def legalNeighbors: List[(Block, Move)] =
+      neighbors.filter { case (b, m) => b.isLegal }
 
     def isStanding: Boolean = b1 == b2
     def isLegal: Boolean = isStanding match {

@@ -1,6 +1,7 @@
 package bloxorz
 
 import java.io.File
+import scala.annotation.tailrec
 
 object main {
   class Level(val filePath: String)
@@ -11,11 +12,25 @@ object main {
   val actions =
     Map[Int, () => Unit](1 -> playLevel, 2 -> solveLevel)
 
-  def mainMenu(option: Int) = {
-    actions.get(option) match {
-      case Some(f) => f()
-      case None =>
-        println("Sorry, that command is not recognized")
+  def readOption: Int = {
+    println("""|Please select one of the following:
+               |  1 - play 
+               |  2 - solve
+               |  0 - quit""".stripMargin)
+    scala.io.StdIn.readInt()
+  }
+
+  @tailrec
+  def mainMenu: Unit = {
+    readOption match {
+      case 0 =>
+      case option =>
+        actions.get(option) match {
+          case Some(f) => f()
+          case None =>
+            println("Invalid input")
+        }
+        mainMenu
     }
   }
 
@@ -25,12 +40,17 @@ object main {
   def chooseLevel(): Level = {
     val levelFiles = getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
 
-    println("Choose level:")
-    levelFiles
-      .sortBy(f => f.getName())
-      .foreach(f => println("  " + f.getName()))
+    def printAvailableLevels = {
+      println("Choose level:")
+      levelFiles
+        .sortBy(f => f.getName())
+        .foreach(f => println("  " + f.getName()))
+    }
 
-    def loop: Level = {
+    printAvailableLevels
+
+    @tailrec
+    def getLevel: Level = {
       val input = scala.io.StdIn.readLine()
       levelFiles.find(_.getName() == input) match {
         case Some(file) => {
@@ -39,11 +59,12 @@ object main {
         }
         case None => {
           println("Invalid input")
-          loop
+          printAvailableLevels
+          getLevel
         }
       }
     }
-    loop
+    getLevel
   }
 
   def playLevel() = {
@@ -59,16 +80,7 @@ object main {
     println(level.solution)
   }
 
-  def readOption: Int = {
-    println("""|Please select one of the following:
-             |  1 - play 
-             |  2 - solve
-             |  0 - quit""".stripMargin)
-    scala.io.StdIn.readInt()
-  }
-
   def main(args: Array[String]) {
-    def inputStream: Stream[Int] = readOption #:: inputStream
-    inputStream.takeWhile(_ != 0).foreach(x => mainMenu(x))
+    mainMenu
   }
 }
