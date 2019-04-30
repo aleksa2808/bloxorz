@@ -36,25 +36,29 @@ trait GameDef {
     def deltaRow(d1: Int, d2: Int) = Block(b1.deltaRow(d1), b2.deltaRow(d2))
     def deltaCol(d1: Int, d2: Int) = Block(b1.deltaCol(d1), b2.deltaCol(d2))
 
-    def left =
-      if (isStanding) deltaCol(-2, -1)
-      else if (b1.row == b2.row) deltaCol(-1, -2)
-      else deltaCol(-1, -1)
+    def left = isStanding match {
+      case true                      => deltaCol(-2, -1)
+      case false if b1.row == b2.row => deltaCol(-1, -2)
+      case _                         => deltaCol(-1, -1)
+    }
 
-    def right =
-      if (isStanding) deltaCol(1, 2)
-      else if (b1.row == b2.row) deltaCol(2, 1)
-      else deltaCol(1, 1)
+    def right = isStanding match {
+      case true                      => deltaCol(1, 2)
+      case false if b1.row == b2.row => deltaCol(2, 1)
+      case _                         => deltaCol(1, 1)
+    }
 
-    def up =
-      if (isStanding) deltaRow(-2, -1)
-      else if (b1.row == b2.row) deltaRow(-1, -1)
-      else deltaRow(-1, -2)
+    def up = isStanding match {
+      case true                      => deltaRow(-2, -1)
+      case false if b1.row == b2.row => deltaRow(-1, -1)
+      case _                         => deltaRow(-1, -2)
+    }
 
-    def down =
-      if (isStanding) deltaRow(1, 2)
-      else if (b1.row == b2.row) deltaRow(1, 1)
-      else deltaRow(2, 1)
+    def down = isStanding match {
+      case true                      => deltaRow(1, 2)
+      case false if b1.row == b2.row => deltaRow(1, 1)
+      case _                         => deltaRow(2, 1)
+    }
 
     def neighbors: List[(Block, Move)] =
       List((left, Left), (right, Right), (up, Up), (down, Down))
