@@ -9,7 +9,14 @@ trait GameDef {
   val startPos: Pos
   val goal: Pos
 
-  type Terrain = Pos => Boolean
+  sealed abstract class Field
+  case object Start extends Field
+  case object Goal extends Field
+  case object Normal extends Field
+  case object Weak extends Field
+  case object Nil extends Field
+
+  type Terrain = Pos => Field
   val terrain: Terrain
 
   sealed abstract class Move
@@ -55,10 +62,31 @@ trait GameDef {
     def legalNeighbors: List[(Block, Move)] = neighbors.filter(_._1.isLegal)
 
     def isStanding: Boolean = b1 == b2
-    def isLegal: Boolean = terrain(b1) && terrain(b2)
+    def isLegal: Boolean = isStanding match {
+      case true => {
+        terrain(b1) match {
+          case Weak => false
+          case Nil  => false
+          case _    => true
+        }
+      }
+      case false => {
+        terrain(b1) match {
+          case Nil => false
+          case _ =>
+            terrain(b2) match {
+              case Nil => false
+              case _   => true
+            }
+        }
+      }
+    }
   }
 
-  def done(b: Block): Boolean = b.b1 == goal && b.b2 == goal
+  def done(b: Block): Boolean = terrain(b.b1) match {
+    case Goal if b.isStanding => true
+    case _                    => false
+  }
 
   def printLevel(b: Block)
 }
