@@ -29,14 +29,20 @@ trait FileParserTerrain extends GameDef {
 
   def printLevel(b: Block) = {
     val Block(b1, b2) = b
-    for (r <- 0 to vector.size - 1) {
-      for (c <- 0 to vector(r).size - 1) {
-        Pos(r, c) match {
-          case here if b1 == here || b2 == here => print('B')
-          case _                                => print(vector(r)(c))
-        }
-      }
-      print('\n')
+
+    def makeLine(r: Vector[Char], i: Int): String = {
+      r.zipWithIndex.map {
+        case (c, j) =>
+          Pos(i, j) match {
+            case p if b1 == p || b2 == p => 'B'
+            case _                       => c
+          }
+      } mkString
     }
+
+    val levelString =
+      vector.zipWithIndex.map(x => makeLine _ tupled x).mkString("\n")
+
+    println(levelString)
   }
 }
