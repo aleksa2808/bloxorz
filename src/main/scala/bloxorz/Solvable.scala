@@ -1,6 +1,6 @@
 package bloxorz
 
-trait Solver extends GameDef {
+trait Solvable extends GameDef {
   def neighborsWithHistory(
       b: Block,
       history: List[Move]

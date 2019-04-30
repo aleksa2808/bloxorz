@@ -6,7 +6,7 @@ import scala.annotation.tailrec
 object main {
   class Level(val filePath: String)
       extends Playable
-      with Solver
+      with Solvable
       with FileParserTerrain
 
   val actions =
