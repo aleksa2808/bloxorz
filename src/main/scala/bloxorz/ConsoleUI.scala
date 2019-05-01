@@ -1,9 +1,9 @@
 package bloxorz
 
-import java.io.File
 import scala.annotation.tailrec
+import java.io.File
 
-object main {
+object ConsoleUI {
   class Level(val filePath: String)
       extends GameDef
       with FileParserTerrain
@@ -15,9 +15,9 @@ object main {
 
   def readOption(): String = {
     println("""|Please select one of the following:
-               |  1 - play 
-               |  2 - solve
-               |  0 - quit""".stripMargin)
+                   |  1 - play 
+                   |  2 - solve
+                   |  0 - quit""".stripMargin)
     scala.io.StdIn.readLine()
   }
 
