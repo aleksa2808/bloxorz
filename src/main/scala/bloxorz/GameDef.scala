@@ -48,22 +48,11 @@ case class Block(b1: Pos, b2: Pos) {
   def isStanding: Boolean = b1 == b2
   def isLegal(terrain: Terrain): Boolean = isStanding match {
     case true => {
-      terrain(b1) match {
-        case Weak => false
-        case Nil  => false
-        case _    => true
-      }
+      val field = terrain(b1)
+      field != Weak && field != Nil
     }
-    case false => {
-      terrain(b1) match {
-        case Nil => false
-        case _ =>
-          terrain(b2) match {
-            case Nil => false
-            case _   => true
-          }
-      }
-    }
+    case false =>
+      terrain(b1) != Nil && terrain(b2) != Nil
   }
 }
 
@@ -87,7 +76,43 @@ trait GameDef {
     Pos(y, x)
   }
 
-  val vector: Vector[Vector[Field]]
+  def vector: Vector[Vector[Field]]
+
+  private class LevelFormatChecker(val level: Vector[Vector[Field]]) {
+    private val yMargin = 1
+    private val xMargin = 2
+
+    private def checkSize: Boolean = {
+      level.size > 2 * yMargin + 1 &&
+      level.forall(r => r.size == level.head.size) &&
+      level.head.size > 2 * xMargin + 1
+    }
+
+    private def checkHorizontalMargins: Boolean = {
+      level.forall(
+        r =>
+          r.zipWithIndex.forall {
+            case (f, i) if (i < xMargin) || (i >= r.size - xMargin) => f == Nil
+            case _                                                  => true
+          }
+      )
+    }
+
+    private def checkVerticalMargins: Boolean = {
+      level.zipWithIndex.forall {
+        case (r, i) if (i < yMargin) || (i >= level.size - yMargin) =>
+          r.forall(_ == Nil)
+        case _ => true
+      }
+    }
+
+    def check: Boolean = {
+      checkSize &&
+      checkHorizontalMargins &&
+      checkVerticalMargins
+    }
+  }
+  require(new LevelFormatChecker(vector).check)
 
   lazy val terrain: Terrain = terrainFunction(vector)
   lazy val startPos: Pos = findUniqueField(Start, vector)
