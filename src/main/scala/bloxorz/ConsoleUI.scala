@@ -70,7 +70,7 @@ object ConsoleUI {
 
   def playLevel() = {
     val level = chooseLevel()
-    level.play() match {
+    level.play(level.printLevel) match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }

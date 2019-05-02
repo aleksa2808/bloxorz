@@ -23,10 +23,10 @@ trait Playable extends GameDef {
     }
   }
 
-  def play() = {
+  def play(reportBlockState: Block => Unit) = {
     @tailrec
     def loop(block: Block): GameResult = {
-      printLevel(block)
+      reportBlockState(block)
 
       block match {
         case block if done(block)   => Win

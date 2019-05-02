@@ -6,9 +6,6 @@ trait GameDef {
     def deltaCol(d: Int): Pos = copy(col = col + d)
   }
 
-  val startPos: Pos
-  val goal: Pos
-
   sealed abstract class Field
   case object Start extends Field
   case object Goal extends Field
@@ -17,7 +14,31 @@ trait GameDef {
   case object Nil extends Field
 
   type Terrain = Pos => Field
-  val terrain: Terrain
+
+  private def terrainFunction(levelVector: Vector[Vector[Field]]): Terrain = {
+    pos =>
+      pos match {
+        case Pos(r, _) if !levelVector.isDefinedAt(r)    => Nil
+        case Pos(r, c) if !levelVector(r).isDefinedAt(c) => Nil
+        case Pos(r, c)                                   => levelVector(r)(c)
+      }
+  }
+
+  private def findUniqueField(
+      f: Field,
+      levelVector: Vector[Vector[Field]]
+  ): Pos = {
+    require(levelVector.count(_.indexOf(f) > -1) == 1)
+    val y = levelVector.indexWhere(_.indexOf(f) > -1)
+    val x = levelVector(y).indexOf(f)
+    Pos(y, x)
+  }
+
+  val vector: Vector[Vector[Field]]
+
+  lazy val terrain: Terrain = terrainFunction(vector)
+  lazy val startPos: Pos = findUniqueField(Start, vector)
+  lazy val goal: Pos = findUniqueField(Goal, vector)
 
   sealed abstract class Move
   case object Left extends Move
@@ -92,6 +113,4 @@ trait GameDef {
     case Goal if b.isStanding => true
     case _                    => false
   }
-
-  def printLevel(b: Block)
 }

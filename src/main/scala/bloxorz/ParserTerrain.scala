@@ -1,39 +1,22 @@
 package bloxorz
 
-sealed trait ParserTerrain extends GameDef {
-  def terrainFunction(levelVector: Vector[Vector[Field]]): Terrain = { pos =>
-    pos match {
-      case Pos(r, _) if !levelVector.isDefinedAt(r)    => Nil
-      case Pos(r, c) if !levelVector(r).isDefinedAt(c) => Nil
-      case Pos(r, c)                                   => levelVector(r)(c)
-    }
-  }
-
-  def findField(f: Field, levelVector: Vector[Vector[Field]]): Pos = {
-    val y = levelVector.indexWhere(_.indexOf(f) > -1)
-    val x = levelVector(y).indexOf(f)
-    Pos(y, x)
-  }
-
-  protected val vector: Vector[Vector[Field]]
-
-  lazy val terrain: Terrain = terrainFunction(vector)
-  lazy val startPos: Pos = findField(Start, vector)
-  lazy val goal: Pos = findField(Goal, vector)
+trait StringParserTerrain extends GameDef {
+  def level: String
 
   val blockChar = 'B'
-  val fieldToCharMap = Map[Field, Char](
-    Start -> 'S',
-    Goal -> 'T',
-    Normal -> 'o',
-    Weak -> '.',
-    Nil -> '-'
+  val charMap = Map[Char, Field](
+    'S' -> Start,
+    'T' -> Goal,
+    'o' -> Normal,
+    '.' -> Weak,
+    '-' -> Nil
   )
+  def fieldToCharMap = for ((k, v) <- charMap) yield (v, k)
 
   def printLevel(b: Block) = {
     val Block(b1, b2) = b
-    for (r <- 0 to vector.size - 1) {
-      for (c <- 0 to vector(r).size - 1) {
+    for (r <- 0 until vector.size) {
+      for (c <- 0 until vector(r).size) {
         val here = Pos(r, c)
         b1 == here || b2 == here match {
           case true  => print(blockChar)
@@ -43,12 +26,6 @@ sealed trait ParserTerrain extends GameDef {
       print('\n')
     }
   }
-}
-
-trait StringParserTerrain extends ParserTerrain {
-  def level: String
-
-  def charMap = for ((k, v) <- fieldToCharMap) yield (v, k)
 
   private object LevelFormatChecker {
     private val yMargin = 1
@@ -89,7 +66,7 @@ trait StringParserTerrain extends ParserTerrain {
   }
   require(LevelFormatChecker.check(level))
 
-  protected final lazy val vector: Vector[Vector[Field]] =
+  lazy val vector: Vector[Vector[Field]] =
     Vector(
       level.split("\n").map(str => Vector(str.map(c => charMap(c)): _*)): _*
     )
