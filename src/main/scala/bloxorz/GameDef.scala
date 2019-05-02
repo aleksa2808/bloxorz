@@ -70,7 +70,6 @@ trait GameDef {
       f: Field,
       levelVector: Vector[Vector[Field]]
   ): Pos = {
-    require(levelVector.count(_.indexOf(f) > -1) == 1)
     val y = levelVector.indexWhere(_.indexOf(f) > -1)
     val x = levelVector(y).indexOf(f)
     Pos(y, x)
@@ -82,35 +81,40 @@ trait GameDef {
     private val yMargin = 1
     private val xMargin = 2
 
-    private def checkSize: Boolean = {
+    private def checkSize: Boolean =
       level.size > 2 * yMargin + 1 &&
-      level.forall(r => r.size == level.head.size) &&
-      level.head.size > 2 * xMargin + 1
-    }
+        level.forall(r => r.size == level.head.size) &&
+        level.head.size > 2 * xMargin + 1
 
-    private def checkHorizontalMargins: Boolean = {
+    private def checkHorizontalMargins: Boolean =
       level.forall(
         r =>
           r.zipWithIndex.forall {
             case (f, i) if (i < xMargin) || (i >= r.size - xMargin) => f == Nil
             case _                                                  => true
           }
-      )
-    }
+      ) && level.map(r => r(xMargin)).exists(_ != Nil) &&
+        level.map(r => r(r.size - xMargin - 1)).exists(_ != Nil)
 
-    private def checkVerticalMargins: Boolean = {
+    private def checkVerticalMargins: Boolean =
       level.zipWithIndex.forall {
         case (r, i) if (i < yMargin) || (i >= level.size - yMargin) =>
           r.forall(_ == Nil)
+        case (r, i) if (i == yMargin) || (i == level.size - yMargin - 1) =>
+          r.exists(_ != Nil)
         case _ => true
       }
-    }
 
-    def check: Boolean = {
+    private def checkIfExistsUnique(field: Field): Boolean =
+      level.count(_.indexOf(field) > -1) == 1
+
+    def check: Boolean =
       checkSize &&
-      checkHorizontalMargins &&
-      checkVerticalMargins
-    }
+        checkHorizontalMargins &&
+        checkVerticalMargins &&
+        checkIfExistsUnique(Start) &&
+        checkIfExistsUnique(Goal) &&
+        new Solver(GameDef.this).solution.isDefined
   }
   require(new LevelFormatChecker(vector).check, "Invalid level format")
 
@@ -124,6 +128,4 @@ trait GameDef {
     case Goal if b.isStanding => true
     case _                    => false
   }
-
-  require(new Solver(this).solution.isDefined, "Level not solvable")
 }
