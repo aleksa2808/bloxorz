@@ -8,7 +8,6 @@ object ConsoleUI {
       extends GameDef
       with FileParserTerrain
       with Playable
-      with Solvable
 
   val blockChar = 'B'
   val fieldToCharMap = Map[Field, Char](
