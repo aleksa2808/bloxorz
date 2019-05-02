@@ -19,34 +19,21 @@ object ConsoleUI {
     Nil -> '-'
   )
 
-  def printLevel(level: Level, block: Block) = {
-    val Block(b1, b2) = block
-    for (r <- 0 until level.vector.size) {
-      for (c <- 0 until level.vector(r).size) {
-        val here = Pos(r, c)
-        b1 == here || b2 == here match {
-          case true  => print(blockChar)
-          case false => print(fieldToCharMap(level.vector(r)(c)))
-        }
-      }
-      print('\n')
-    }
-  }
-
   val actions =
     Map[String, () => Unit]("1" -> playLevel, "2" -> solveLevel)
 
-  def readOption(): String = {
-    println("""|Please select one of the following:
-                   |  1 - play 
-                   |  2 - solve
-                   |  0 - quit""".stripMargin)
+  def readOption(options: String): String = {
+    println("Please select one of the following:")
+    println(options)
     scala.io.StdIn.readLine()
   }
 
   @tailrec
   def mainMenu(): Unit = {
-    readOption() match {
+    val options = """|  1 - play 
+                     |  2 - solve
+                     |  0 - quit""".stripMargin
+    readOption(options) match {
       case "0" =>
       case option =>
         actions.get(option) match {
@@ -91,9 +78,35 @@ object ConsoleUI {
     getLevel()
   }
 
+  def printLevel(level: Level)(block: Block) = {
+    val Block(b1, b2) = block
+    for (r <- 0 until level.vector.size) {
+      for (c <- 0 until level.vector(r).size) {
+        val here = Pos(r, c)
+        b1 == here || b2 == here match {
+          case true  => print(blockChar)
+          case false => print(fieldToCharMap(level.vector(r)(c)))
+        }
+      }
+      print('\n')
+    }
+  }
+
+  def getNextBlock(block: Block) =
+    readOption("""|  a s w d""".stripMargin) match {
+      case "a" => block.left
+      case "s" => block.down
+      case "w" => block.up
+      case "d" => block.right
+      case _ => {
+        println("Invalid action.")
+        block
+      }
+    }
+
   def playLevel() = {
     val level = chooseLevel()
-    level.play(level.printLevel) match {
+    level.play(printLevel(level), getNextBlock) match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }

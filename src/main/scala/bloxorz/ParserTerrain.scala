@@ -3,7 +3,6 @@ package bloxorz
 trait StringParserTerrain extends GameDef {
   def level: String
 
-  val blockChar = 'B'
   val charMap = Map[Char, Field](
     'S' -> Start,
     'T' -> Goal,
@@ -12,20 +11,6 @@ trait StringParserTerrain extends GameDef {
     '-' -> Nil
   )
   def fieldToCharMap = for ((k, v) <- charMap) yield (v, k)
-
-  def printLevel(b: Block) = {
-    val Block(b1, b2) = b
-    for (r <- 0 until vector.size) {
-      for (c <- 0 until vector(r).size) {
-        val here = Pos(r, c)
-        b1 == here || b2 == here match {
-          case true  => print(blockChar)
-          case false => print(fieldToCharMap(vector(r)(c)))
-        }
-      }
-      print('\n')
-    }
-  }
 
   private object LevelFormatChecker {
     private val yMargin = 1

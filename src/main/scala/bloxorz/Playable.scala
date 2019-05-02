@@ -6,31 +6,14 @@ case object Win extends GameResult
 case object Lose extends GameResult
 
 trait Playable extends GameDef {
-  def readAction(): String = {
-    println("""|Please select one of the following:
-                 |  a s w d""".stripMargin)
-    scala.io.StdIn.readLine()
-  }
-
-  def getNextBlock(block: Block) = readAction match {
-    case "a" => block.left
-    case "s" => block.down
-    case "w" => block.up
-    case "d" => block.right
-    case _ => {
-      println("Invalid action.")
-      block
-    }
-  }
-
-  def play(reportBlockState: Block => Unit) = {
+  def play(reportBlockState: Block => Unit, nextBlockState: Block => Block) = {
     @tailrec
     def loop(block: Block): GameResult = {
       reportBlockState(block)
 
       block match {
         case block if done(block)            => Win
-        case block if block.isLegal(terrain) => loop(getNextBlock(block))
+        case block if block.isLegal(terrain) => loop(nextBlockState(block))
         case _                               => Lose
       }
     }
