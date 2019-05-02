@@ -113,7 +113,8 @@ object ConsoleUI {
 
   def solveLevel() = {
     val level = chooseLevel()
-    println(level.solution)
+    val solver = new Solver(level)
+    println(solver.solution)
   }
 
   def main(args: Array[String]) {
