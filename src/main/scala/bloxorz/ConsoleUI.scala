@@ -91,21 +91,22 @@ object ConsoleUI {
     }
   }
 
-  def getNextBlock(block: Block) =
+  @tailrec
+  def getNextMove: Move =
     readOption("""|  a s w d""".stripMargin) match {
-      case "a" => block.left
-      case "s" => block.down
-      case "w" => block.up
-      case "d" => block.right
+      case "a" => Left
+      case "s" => Down
+      case "w" => Up
+      case "d" => Right
       case _ => {
         println("Invalid action.")
-        block
+        getNextMove
       }
     }
 
   def playLevel() = {
     val level = chooseLevel()
-    level.play(printLevel(level), getNextBlock) match {
+    level.play(printLevel(level), getNextMove) match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }

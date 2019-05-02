@@ -12,6 +12,12 @@ case object Normal extends Field
 case object Weak extends Field
 case object Nil extends Field
 
+sealed abstract class Move
+case object Left extends Move
+case object Right extends Move
+case object Up extends Move
+case object Down extends Move
+
 case class Block(b1: Pos, b2: Pos) {
   require(
     b1.row <= b2.row && b1.col <= b2.col,
@@ -43,6 +49,13 @@ case class Block(b1: Pos, b2: Pos) {
     case true                      => deltaRow(1, 2)
     case false if b1.row == b2.row => deltaRow(1, 1)
     case _                         => deltaRow(2, 1)
+  }
+
+  def move(move: Move) = move match {
+    case Left  => left
+    case Right => right
+    case Up    => up
+    case Down  => down
   }
 
   def isStanding: Boolean = b1 == b2

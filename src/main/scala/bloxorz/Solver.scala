@@ -1,19 +1,8 @@
 package bloxorz
 
 class Solver(game: GameDef) {
-  sealed abstract class Move
-  case object Left extends Move
-  case object Right extends Move
-  case object Up extends Move
-  case object Down extends Move
-
   def neighbors(block: Block): List[(Block, Move)] =
-    List(
-      (block.left, Left),
-      (block.right, Right),
-      (block.up, Up),
-      (block.down, Down)
-    )
+    List(Left, Right, Up, Down).map(m => (block.move(m), m))
 
   def legalNeighbors(block: Block): List[(Block, Move)] =
     neighbors(block).filter { case (b, m) => b.isLegal(game.terrain) }
