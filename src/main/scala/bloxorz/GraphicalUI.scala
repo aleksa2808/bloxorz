@@ -13,13 +13,15 @@ object GraphicalUI extends JFXApp {
     height = 450
     scene = new Scene {
       fill = LightGreen
-      content = new Rectangle {
-        x = 25
-        y = 40
-        width = 100
-        height = 100
-        fill <== when(hover) choose Green otherwise Red
-      }
+      content = for (i <- 0 to 5; j <- 0 to 5)
+        yield
+          new Rectangle {
+            width = 100
+            height = 100
+            x = 25 + j * width.get()
+            y = 40 + i * height.get()
+            fill <== when(hover) choose Green otherwise Red
+          }
     }
   }
 }

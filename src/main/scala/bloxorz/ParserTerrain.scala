@@ -8,6 +8,7 @@ sealed trait ParserTerrain extends GameDef {
     '.' -> Weak,
     '-' -> Nil
   )
+  println("Parser")
 
   def terrainFunction(levelVector: Vector[Vector[Char]]): Terrain = { pos =>
     pos match {
@@ -24,7 +25,6 @@ sealed trait ParserTerrain extends GameDef {
   }
 
   protected val vector: Vector[Vector[Char]]
-  assert(vector.forall(_.forall(c => charMap.isDefinedAt(c))))
 
   lazy val terrain: Terrain = terrainFunction(vector)
   lazy val startPos: Pos = findChar('S', vector)
@@ -46,20 +46,60 @@ sealed trait ParserTerrain extends GameDef {
 }
 
 trait StringParserTerrain extends ParserTerrain {
-  val level: String
+  def level: String
+
+  private object LevelFormatChecker {
+    private val yMargin = 1
+    private val xMargin = 2
+
+    private def checkSize(rows: Array[String]): Boolean = {
+      rows.size > 2 * yMargin + 1 &&
+      rows.forall(r => r.size == rows.head.size) &&
+      rows.head.size > 2 * xMargin + 1
+    }
+
+    private def checkHorizontalMargins(rows: Array[String]): Boolean = {
+      rows.forall(
+        r =>
+          r.zipWithIndex.forall {
+            case (c, i) if (i < xMargin) || (i >= r.size - xMargin) =>
+              c == inverseCharMap(Nil)
+            case _ => true
+          }
+      )
+    }
+
+    private def checkVerticalMargins(rows: Array[String]): Boolean = {
+      rows.zipWithIndex.forall {
+        case (r, i) if (i < yMargin) || (i >= rows.size - yMargin) =>
+          r.forall(_ == inverseCharMap(Nil))
+        case _ => true
+      }
+    }
+
+    def check(level: => String): Boolean = {
+      val rows = level.split("\n")
+
+      checkSize(rows) &&
+      checkHorizontalMargins(rows) &&
+      checkVerticalMargins(rows)
+    }
+  }
+  require(LevelFormatChecker.check(level))
+
+  def inverseCharMap = for ((k, v) <- charMap) yield (v, k)
 
   protected final lazy val vector: Vector[Vector[Char]] =
     Vector(level.split("\n").map(str => Vector(str: _*)): _*)
 }
 
-trait FileParserTerrain extends ParserTerrain {
-  val filePath: String
+trait FileParserTerrain extends StringParserTerrain {
+  def filePath: String
 
-  protected final lazy val vector: Vector[Vector[Char]] = {
+  override def level = {
     val source = scala.io.Source.fromFile(filePath)
     try {
-      val lines = source.getLines()
-      lines.map(line => Vector(line: _*)).toVector
+      source.getLines().mkString("\n")
     } finally source.close()
   }
 }
