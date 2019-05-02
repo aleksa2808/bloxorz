@@ -1,34 +1,34 @@
 package bloxorz
 
 sealed trait ParserTerrain extends GameDef {
-  val charMap = Map[Char, Field](
-    'S' -> Start,
-    'T' -> Goal,
-    'o' -> Normal,
-    '.' -> Weak,
-    '-' -> Nil
-  )
-  println("Parser")
-
-  def terrainFunction(levelVector: Vector[Vector[Char]]): Terrain = { pos =>
+  def terrainFunction(levelVector: Vector[Vector[Field]]): Terrain = { pos =>
     pos match {
       case Pos(r, _) if !levelVector.isDefinedAt(r)    => Nil
       case Pos(r, c) if !levelVector(r).isDefinedAt(c) => Nil
-      case Pos(r, c)                                   => charMap(levelVector(r)(c))
+      case Pos(r, c)                                   => levelVector(r)(c)
     }
   }
 
-  def findChar(c: Char, levelVector: Vector[Vector[Char]]): Pos = {
-    val y = levelVector.indexWhere(_.indexOf(c) > -1)
-    val x = levelVector(y).indexOf(c)
+  def findField(f: Field, levelVector: Vector[Vector[Field]]): Pos = {
+    val y = levelVector.indexWhere(_.indexOf(f) > -1)
+    val x = levelVector(y).indexOf(f)
     Pos(y, x)
   }
 
-  protected val vector: Vector[Vector[Char]]
+  protected val vector: Vector[Vector[Field]]
 
   lazy val terrain: Terrain = terrainFunction(vector)
-  lazy val startPos: Pos = findChar('S', vector)
-  lazy val goal: Pos = findChar('T', vector)
+  lazy val startPos: Pos = findField(Start, vector)
+  lazy val goal: Pos = findField(Goal, vector)
+
+  val blockChar = 'B'
+  val fieldToCharMap = Map[Field, Char](
+    Start -> 'S',
+    Goal -> 'T',
+    Normal -> 'o',
+    Weak -> '.',
+    Nil -> '-'
+  )
 
   def printLevel(b: Block) = {
     val Block(b1, b2) = b
@@ -36,8 +36,8 @@ sealed trait ParserTerrain extends GameDef {
       for (c <- 0 to vector(r).size - 1) {
         val here = Pos(r, c)
         b1 == here || b2 == here match {
-          case true  => print('B')
-          case false => print(vector(r)(c))
+          case true  => print(blockChar)
+          case false => print(fieldToCharMap(vector(r)(c)))
         }
       }
       print('\n')
@@ -47,6 +47,8 @@ sealed trait ParserTerrain extends GameDef {
 
 trait StringParserTerrain extends ParserTerrain {
   def level: String
+
+  def charMap = for ((k, v) <- fieldToCharMap) yield (v, k)
 
   private object LevelFormatChecker {
     private val yMargin = 1
@@ -63,7 +65,7 @@ trait StringParserTerrain extends ParserTerrain {
         r =>
           r.zipWithIndex.forall {
             case (c, i) if (i < xMargin) || (i >= r.size - xMargin) =>
-              c == inverseCharMap(Nil)
+              c == fieldToCharMap(Nil)
             case _ => true
           }
       )
@@ -72,7 +74,7 @@ trait StringParserTerrain extends ParserTerrain {
     private def checkVerticalMargins(rows: Array[String]): Boolean = {
       rows.zipWithIndex.forall {
         case (r, i) if (i < yMargin) || (i >= rows.size - yMargin) =>
-          r.forall(_ == inverseCharMap(Nil))
+          r.forall(_ == fieldToCharMap(Nil))
         case _ => true
       }
     }
@@ -87,10 +89,10 @@ trait StringParserTerrain extends ParserTerrain {
   }
   require(LevelFormatChecker.check(level))
 
-  def inverseCharMap = for ((k, v) <- charMap) yield (v, k)
-
-  protected final lazy val vector: Vector[Vector[Char]] =
-    Vector(level.split("\n").map(str => Vector(str: _*)): _*)
+  protected final lazy val vector: Vector[Vector[Field]] =
+    Vector(
+      level.split("\n").map(str => Vector(str.map(c => charMap(c)): _*)): _*
+    )
 }
 
 trait FileParserTerrain extends StringParserTerrain {
