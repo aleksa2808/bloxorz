@@ -29,9 +29,9 @@ trait Playable extends GameDef {
       reportBlockState(block)
 
       block match {
-        case block if done(block)   => Win
-        case block if block.isLegal => loop(getNextBlock(block))
-        case _                      => Lose
+        case block if done(block)            => Win
+        case block if block.isLegal(terrain) => loop(getNextBlock(block))
+        case _                               => Lose
       }
     }
     loop(startBlock)

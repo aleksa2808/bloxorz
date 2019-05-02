@@ -10,6 +10,29 @@ object ConsoleUI {
       with Playable
       with Solvable
 
+  val blockChar = 'B'
+  val fieldToCharMap = Map[Field, Char](
+    Start -> 'S',
+    Goal -> 'T',
+    Normal -> 'o',
+    Weak -> '.',
+    Nil -> '-'
+  )
+
+  def printLevel(level: Level, block: Block) = {
+    val Block(b1, b2) = block
+    for (r <- 0 until level.vector.size) {
+      for (c <- 0 until level.vector(r).size) {
+        val here = Pos(r, c)
+        b1 == here || b2 == here match {
+          case true  => print(blockChar)
+          case false => print(fieldToCharMap(level.vector(r)(c)))
+        }
+      }
+      print('\n')
+    }
+  }
+
   val actions =
     Map[String, () => Unit]("1" -> playLevel, "2" -> solveLevel)
 
