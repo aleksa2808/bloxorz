@@ -22,7 +22,8 @@ lazy val root = (project in file("."))
     libraryDependencies += scalaFX,
     libraryDependencies ++= javaFXModules.map(
       m => "org.openjfx" % s"javafx-$m" % "12.0.1" classifier osName
-    )
+    ),
+    libraryDependencies += akka
   )
 
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.
