@@ -92,7 +92,7 @@ object GraphicalUI extends JFXApp {
 
   val queue: BlockingQueue[Move] = new LinkedBlockingQueue
 
-  new Thread {
+  val gameThread = new Thread {
     def reportBlockState(block: Block) {
       Platform.runLater(show(block))
     }
@@ -102,12 +102,18 @@ object GraphicalUI extends JFXApp {
     }
 
     override def run() {
-      level.play(reportBlockState, nextMove) match {
-        case Win  => println("You win!")
-        case Lose => println("You lose!")
+      try {
+        level.play(reportBlockState, nextMove) match {
+          case Win  => println("You win!")
+          case Lose => println("You lose!")
+        }
+      } catch {
+        case e: IllegalMonitorStateException =>
+          println("gameThread was waiting for a move")
       }
     }
-  }.start()
+  }
+  gameThread.start()
 
   // val akka = ActorSystem("bloxorz")
   // val uiActor = akka.actorOf(Props[UIActor], name = "ui")
@@ -167,6 +173,10 @@ object GraphicalUI extends JFXApp {
             case false => fieldToColorMap(level.vector(i)(j))
           }
         }
+  }
+
+  override def stopApp(): Unit = {
+    gameThread.stop()
   }
 
   // override def stopApp = {
