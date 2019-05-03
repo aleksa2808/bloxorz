@@ -19,7 +19,11 @@ object ConsoleUI {
   )
 
   val actions =
-    Map[String, () => Unit]("1" -> playLevel, "2" -> solveLevel)
+    Map[String, () => Unit](
+      "1" -> playLevel,
+      "2" -> solveLevel,
+      "3" -> editLevel
+    )
 
   def readOption(options: String): String = {
     println("Please select one of the following:")
@@ -31,6 +35,7 @@ object ConsoleUI {
   def mainMenu(): Unit = {
     val options = """|  1 - play 
                      |  2 - solve
+                     |  3 - edit
                      |  0 - quit""".stripMargin
     readOption(options) match {
       case "0" =>
@@ -116,6 +121,19 @@ object ConsoleUI {
     val level = chooseLevel()
     val solver = new Solver(level)
     println(solver.solution)
+  }
+
+  def editLevel() = {
+    val level = chooseLevel()
+    val edit = Edit(level.startPos, PlaceGoalTile)
+    val editedLevel = Editor.editLevel(level, edit)
+
+    val editedLevelString =
+      editedLevel.vector
+        .map(_.map(f => fieldToCharMap(f)).mkString)
+        .mkString("\n")
+
+    print(editedLevelString)
   }
 
   def main(args: Array[String]) {
