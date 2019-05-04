@@ -53,13 +53,13 @@ object ConsoleUI {
     dir.listFiles.filter(_.isFile).toList
 
   def chooseLevel(): Level = {
-    val levelFiles = getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
+    val levelFiles =
+      getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
+        .sortBy(f => f.getName())
 
     def printAvailableLevels() = {
       println("Choose level:")
-      levelFiles
-        .sortBy(f => f.getName())
-        .foreach(f => println("  " + f.getName()))
+      levelFiles.foreach(f => println("  " + f.getName()))
     }
 
     printAvailableLevels()
@@ -133,7 +133,7 @@ object ConsoleUI {
         .map(_.map(f => fieldToCharMap(f)).mkString)
         .mkString("\n")
 
-    print(editedLevelString)
+    println(editedLevelString)
   }
 
   def main(args: Array[String]) {

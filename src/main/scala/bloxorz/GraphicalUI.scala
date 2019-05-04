@@ -26,61 +26,32 @@ import scalafx.scene.input.KeyCode
 import akka.util.BoundedBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
+import java.io.File
+import scalafx.scene.control.ComboBox
 
 class Level(val filePath: String)
     extends GameDef
     with FileParserTerrain
     with Playable
 
-// sealed trait Message
-// case class BlockStateMessage(b: Block) extends Message
-// case class MoveMessage(m: Move) extends Message
-// case class RegisterGameMessage() extends Message
-// case class GameResultMessage(gr: GameResult) extends Message
-
-// class GameActor(level: Level, ui: ActorRef) extends Actor {
-//   ui ! RegisterGameMessage
-
-//   def reportBlockState(block: Block) = {
-//     ui ! BlockStateMessage(block)
-//   }
-
-//   val queue: BlockingQueue[Move] = new LinkedBlockingQueue
-
-//   def nextMove = {
-//     queue.take()
-//   }
-
-//   level.play(reportBlockState, nextMove)
-
-//   def receive = {
-//     case MoveMessage(move) => queue.put(move)
-//     case _                 =>
-//   }
-// }
-
-// class UIActor extends Actor {
-//   private var game: Option[ActorRef] = None
-
-//   def receive = {
-//     case RegisterGameMessage => game = Some(sender)
-//     case BlockStateMessage(block) =>
-//       Platform.runLater { GraphicalUI show block }
-//     case MoveMessage(move) =>
-//       game match {
-//         case Some(g) => g ! MoveMessage(move)
-//         case None    =>
-//       }
-//     // case UpdateMainVariant(variant: Variant) =>
-//     //   Platform.runLater {
-//     //     GraphicalUI.mainVariantLabel.text = "Main Variant = (%s)" format variant.show
-//     //   }
-//   }
-// }
+class GameThread(
+    level: Level,
+    reportBlockState: Block => Unit,
+    getNextMove: () => Move,
+    endCallback: GameResult => Unit
+) extends Thread {
+  override def run() {
+    try {
+      val gameResult = level.play(reportBlockState, getNextMove())
+      endCallback(gameResult)
+    } catch {
+      case e: IllegalMonitorStateException =>
+        println("gameThread was waiting for a move")
+    }
+  }
+}
 
 object GraphicalUI extends JFXApp {
-  val level = new Level("/home/murtaugh/master/fp/levels/1")
-
   val blockColor = Color.RED
   val fieldToColorMap = Map[Field, Color](
     Start -> Color.BLUE,
@@ -90,98 +61,126 @@ object GraphicalUI extends JFXApp {
     Nil -> Color.LIGHTGREEN
   )
 
-  val queue: BlockingQueue[Move] = new LinkedBlockingQueue
-
-  val gameThread = new Thread {
-    def reportBlockState(block: Block) {
-      Platform.runLater(show(block))
-    }
-
-    def nextMove = {
-      queue.take()
-    }
-
-    override def run() {
-      try {
-        level.play(reportBlockState, nextMove) match {
-          case Win  => println("You win!")
-          case Lose => println("You lose!")
-        }
-      } catch {
-        case e: IllegalMonitorStateException =>
-          println("gameThread was waiting for a move")
-      }
-    }
-  }
-  gameThread.start()
-
-  // val akka = ActorSystem("bloxorz")
-  // val uiActor = akka.actorOf(Props[UIActor], name = "ui")
-  // val gameActor =
-  //   akka.actorOf(Props(new GameActor(level, uiActor)), name = "game")
-
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
     width = 400
     height = 400
 
-    scene = new Scene(400, 400) {
-      content = gamePane
-      onKeyPressed = (e: KeyEvent) => {
-        e.code match {
-          // case KeyCode.W => uiActor ! MoveMessage(Up)
-          // case KeyCode.S => uiActor ! MoveMessage(Down)
-          // case KeyCode.A => uiActor ! MoveMessage(Left)
-          // case KeyCode.D => uiActor ! MoveMessage(Right)
-          case KeyCode.W => queue.put(Up)
-          case KeyCode.S => queue.put(Down)
-          case KeyCode.A => queue.put(Left)
-          case KeyCode.D => queue.put(Right)
-          case _         =>
+    val menuScene = new Scene(400, 400) {
+      val playButton = new Button("Play")
+      playButton.layoutX = 20
+      playButton.layoutY = 20
+      playButton.onAction = (e: ActionEvent) => {
+        val level = new Level(levelNameFileMap(levelCBox.value()))
+
+        val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+        val playScene = gameScene(level, moveQueue)
+        playScene.onKeyPressed = (e: KeyEvent) => {
+          e.code match {
+            case KeyCode.W => moveQueue.put(Up)
+            case KeyCode.S => moveQueue.put(Down)
+            case KeyCode.A => moveQueue.put(Left)
+            case KeyCode.D => moveQueue.put(Right)
+            case _         =>
+          }
+        }
+        setScene(playScene)
+      }
+
+      val levelLabel = new Label("Level:")
+      levelLabel.layoutX = 20
+      levelLabel.layoutY = 50
+
+      def getListOfFiles(dir: File): List[File] =
+        dir.listFiles.filter(_.isFile).toList
+
+      val levelFiles =
+        getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
+          .sortBy(f => f.getName())
+      assert(!levelFiles.isEmpty)
+
+      val levelNameFileMap =
+        levelFiles.map(f => f.getName() -> f.getCanonicalPath()).toMap
+      val levels = levelNameFileMap.keySet.toList.sorted
+
+      val levelCBox = new ComboBox(levels)
+      levelCBox.layoutX = 20
+      levelCBox.layoutY = 80
+      levelCBox.getSelectionModel().selectFirst()
+
+      content = List(playButton, levelLabel, levelCBox)
+    }
+
+    def gameScene(level: Level, moveQueue: BlockingQueue[Move]): Scene =
+      new Scene(400, 400) {
+        new GameThread(
+          level,
+          block => Platform.runLater(show(block)),
+          () => moveQueue.take(),
+          gameResult => {
+            Thread.sleep(500)
+            gameResult match {
+              case Win =>
+                Platform.runLater(setScene(menuScene)) // TODO: next level
+              case Lose => Platform.runLater(setScene(menuScene))
+            }
+          }
+        ).start()
+
+        content = gamePane
+
+        val squareSize = 400.0 / level.vector.size
+
+        val blockRect = new Rectangle {
+          width = squareSize * (1 + (level.startBlock.b2.col - level.startBlock.b1.col))
+          height = squareSize * (1 + (level.startBlock.b2.row - level.startBlock.b1.row))
+          x = level.startBlock.b1.col * squareSize
+          y = level.startBlock.b1.row * squareSize
+          fill = blockColor
+        }
+
+        lazy val gamePane: Pane = new Pane {
+          children = makeBoard(squareSize, level)
+        }
+
+        def show(block: Block): Unit = {
+          val Block(b1, b2) = block
+
+          blockRect.width = squareSize * (1 + (b2.col - b1.col))
+          blockRect.height = squareSize * (1 + (b2.row - b1.row))
+          blockRect.x = b1.col * squareSize
+          blockRect.y = b1.row * squareSize
+
+          gamePane.children = makeBoard(squareSize, level) :+ blockRect
         }
       }
+
+    def setScene(s: Scene) = {
+      scene = s
     }
+    setScene(menuScene)
 
     // width onChange (show())
     // height onChange (show())
   }
 
-  lazy val gamePane: Pane = new Pane {
-    children = showBoard(400, 400, level.startBlock)
-  }
-
-  def show(block: Block): Unit = {
-    gamePane.children = showBoard(400, 400, block)
-  }
-
-  def showBoard(
-      paneWidth: Double,
-      paneHeight: Double,
-      block: Block
+  def makeBoard(
+      squareSize: Double,
+      level: Level
   ) = {
-    val Block(b1, b2) = block
     for (i <- 0 until level.vector.size;
          j <- 0 until level.vector.head.size)
       yield
         new Rectangle {
-          width = paneWidth / level.vector.size
-          height = width()
-          x = j * width.get()
-          y = i * height.get()
-          fill = b1 == Pos(i, j) || b2 == Pos(i, j) match {
-            case true  => blockColor
-            case false => fieldToColorMap(level.vector(i)(j))
-          }
+          width = squareSize
+          height = squareSize
+          x = j * squareSize
+          y = i * squareSize
+          fill = fieldToColorMap(level.vector(i)(j))
         }
   }
 
   override def stopApp(): Unit = {
-    gameThread.stop()
+    // gameThread.stop()
   }
-
-  // override def stopApp = {
-  //   akka stop gameActor
-  //   akka stop uiActor
-  //   akka.terminate
-  // }
 }
