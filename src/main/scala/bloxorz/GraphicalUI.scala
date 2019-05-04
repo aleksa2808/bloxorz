@@ -87,6 +87,32 @@ object GraphicalUI extends JFXApp {
         setScene(playScene)
       }
 
+      val solveButton = new Button("Solve")
+      solveButton.layoutX = 100
+      solveButton.layoutY = 20
+      solveButton.onAction = (e: ActionEvent) => {
+        val level = new Level(levelNameFileMap(levelCBox.value()))
+        new Solver(level).solution match {
+          case Some(s) => {
+            val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+            val solveScene = gameScene(level, moveQueue)
+
+            // Solver thread
+            new Thread {
+              override def run() {
+                for (m <- s) {
+                  Thread.sleep(400)
+                  moveQueue.put(m)
+                }
+              }
+            }.start()
+
+            setScene(solveScene)
+          }
+          case None => println("Level isn't solvable")
+        }
+      }
+
       val levelLabel = new Label("Level:")
       levelLabel.layoutX = 20
       levelLabel.layoutY = 50
@@ -108,7 +134,7 @@ object GraphicalUI extends JFXApp {
       levelCBox.layoutY = 80
       levelCBox.getSelectionModel().selectFirst()
 
-      content = List(playButton, levelLabel, levelCBox)
+      content = List(playButton, solveButton, levelLabel, levelCBox)
     }
 
     def gameScene(level: Level, moveQueue: BlockingQueue[Move]): Scene =
