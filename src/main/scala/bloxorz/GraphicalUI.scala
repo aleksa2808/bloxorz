@@ -61,103 +61,146 @@ object GraphicalUI extends JFXApp {
     Nil -> Color.LIGHTGREEN
   )
 
+  val levelNameFileMap = new File("/home/murtaugh/master/fp/levels").listFiles
+    .filter(_.isFile)
+    .toList
+    .sortBy(f => f.getName())
+    .map(f => f.getName() -> f.getCanonicalPath())
+    .toMap
+
+  val levelNames = levelNameFileMap.keySet.toList.sorted
+  assert(!levelNames.isEmpty)
+
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
     width = 400
     height = 400
 
-    val menuScene = new Scene(400, 400) {
-      val playButton = new Button("Play")
-      playButton.layoutX = 20
-      playButton.layoutY = 20
-      playButton.onAction = (e: ActionEvent) => {
-        val level = new Level(levelNameFileMap(levelCBox.value()))
+    val menuScene: Scene = new Scene(width(), height()) {
+      val playButton = new Button("Play") {
+        layoutX = 20
+        layoutY = 20
+        onAction = (e: ActionEvent) => {
+          val levels = levelNames
+            .dropWhile(_ != levelCBox.value())
+            .map(lName => new Level(levelNameFileMap(lName)))
+          // new Level(levelNameFileMap(levelCBox.value()))
 
-        val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
-        val playScene = gameScene(level, moveQueue)
-        playScene.onKeyPressed = (e: KeyEvent) => {
-          e.code match {
-            case KeyCode.W => moveQueue.put(Up)
-            case KeyCode.S => moveQueue.put(Down)
-            case KeyCode.A => moveQueue.put(Left)
-            case KeyCode.D => moveQueue.put(Right)
-            case _         =>
+          val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+          val playScene: Scene = gameScene(
+            levels.head,
+            moveQueue,
+            levels.tail
+          )
+          playScene.onKeyPressed = (e: KeyEvent) => {
+            e.code match {
+              case KeyCode.W => moveQueue.put(Up)
+              case KeyCode.S => moveQueue.put(Down)
+              case KeyCode.A => moveQueue.put(Left)
+              case KeyCode.D => moveQueue.put(Right)
+              case _         =>
+            }
           }
+          setScene(playScene)
         }
-        setScene(playScene)
       }
 
-      val solveButton = new Button("Solve")
-      solveButton.layoutX = 100
-      solveButton.layoutY = 20
-      solveButton.onAction = (e: ActionEvent) => {
-        val level = new Level(levelNameFileMap(levelCBox.value()))
-        new Solver(level).solution match {
-          case Some(s) => {
-            val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
-            val solveScene = gameScene(level, moveQueue)
+      val solveButton: Button = new Button("Solve") {
+        layoutX = 100
+        layoutY = 20
+        onAction = (e: ActionEvent) => {
+          val level = new Level(levelNameFileMap(levelCBox.value()))
+          new Solver(level).solution match {
+            case Some(s) => {
+              val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+              val solveScene: Scene = gameScene(
+                level,
+                moveQueue,
+                List()
+              )
 
-            // Solver thread
-            new Thread {
-              override def run() {
-                for (m <- s) {
-                  Thread.sleep(400)
-                  moveQueue.put(m)
+              // Solver thread
+              new Thread {
+                override def run() {
+                  for (m <- s) {
+                    Thread.sleep(400)
+                    moveQueue.put(m)
+                  }
                 }
-              }
-            }.start()
+              }.start()
 
-            setScene(solveScene)
+              setScene(solveScene)
+            }
+            case None => println("Level isn't solvable")
           }
-          case None => println("Level isn't solvable")
         }
       }
 
-      val levelLabel = new Label("Level:")
-      levelLabel.layoutX = 20
-      levelLabel.layoutY = 50
+      val levelLabel = new Label("Level:") {
+        layoutX = 20
+        layoutY = 50
+      }
 
-      def getListOfFiles(dir: File): List[File] =
-        dir.listFiles.filter(_.isFile).toList
-
-      val levelFiles =
-        getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
-          .sortBy(f => f.getName())
-      assert(!levelFiles.isEmpty)
-
-      val levelNameFileMap =
-        levelFiles.map(f => f.getName() -> f.getCanonicalPath()).toMap
-      val levels = levelNameFileMap.keySet.toList.sorted
-
-      val levelCBox = new ComboBox(levels)
-      levelCBox.layoutX = 20
-      levelCBox.layoutY = 80
+      val levelCBox = new ComboBox(levelNames) {
+        layoutX = 20
+        layoutY = 80
+      }
       levelCBox.getSelectionModel().selectFirst()
 
       content = List(playButton, solveButton, levelLabel, levelCBox)
     }
 
-    def gameScene(level: Level, moveQueue: BlockingQueue[Move]): Scene =
+    def gameScene(
+        level: Level,
+        moveQueue: BlockingQueue[Move],
+        nextLevelList: List[Level]
+    ): Scene =
       new Scene(400, 400) {
         new GameThread(
           level,
-          block => Platform.runLater(show(block)),
+          block => Platform.runLater(moveBlock(block)),
           () => moveQueue.take(),
           gameResult => {
             Thread.sleep(500)
             gameResult match {
               case Win =>
-                Platform.runLater(setScene(menuScene)) // TODO: next level
+                nextLevelList match {
+                  case List() => Platform.runLater(setScene(menuScene))
+                  case head :: tail =>
+                    Platform.runLater {
+                      val scene = gameScene(head, moveQueue, tail)
+                      scene.onKeyPressed = (e: KeyEvent) => {
+                        e.code match {
+                          case KeyCode.W => moveQueue.put(Up)
+                          case KeyCode.S => moveQueue.put(Down)
+                          case KeyCode.A => moveQueue.put(Left)
+                          case KeyCode.D => moveQueue.put(Right)
+                          case _         =>
+                        }
+                      }
+                      setScene(scene)
+                    }
+                }
               case Lose => Platform.runLater(setScene(menuScene))
             }
           }
         ).start()
 
-        content = gamePane
+        lazy val squareSize = width() / level.vector.head.size
 
-        val squareSize = 400.0 / level.vector.size
+        lazy val board =
+          for (i <- 0 until level.vector.size;
+               j <- 0 until level.vector.head.size)
+            yield
+              new Rectangle {
+                width = squareSize
+                height = squareSize
+                x = j * squareSize
+                y = i * squareSize
+                fill = fieldToColorMap(level.vector(i)(j))
+              }
 
-        val blockRect = new Rectangle {
+        lazy val blockRect = new Rectangle {
           width = squareSize * (1 + (level.startBlock.b2.col - level.startBlock.b1.col))
           height = squareSize * (1 + (level.startBlock.b2.row - level.startBlock.b1.row))
           x = level.startBlock.b1.col * squareSize
@@ -166,18 +209,17 @@ object GraphicalUI extends JFXApp {
         }
 
         lazy val gamePane: Pane = new Pane {
-          children = makeBoard(squareSize, level)
+          children = board :+ blockRect
         }
 
-        def show(block: Block): Unit = {
-          val Block(b1, b2) = block
+        content = gamePane
 
+        def moveBlock(block: Block): Unit = {
+          val Block(b1, b2) = block
           blockRect.width = squareSize * (1 + (b2.col - b1.col))
           blockRect.height = squareSize * (1 + (b2.row - b1.row))
           blockRect.x = b1.col * squareSize
           blockRect.y = b1.row * squareSize
-
-          gamePane.children = makeBoard(squareSize, level) :+ blockRect
         }
       }
 
@@ -188,22 +230,6 @@ object GraphicalUI extends JFXApp {
 
     // width onChange (show())
     // height onChange (show())
-  }
-
-  def makeBoard(
-      squareSize: Double,
-      level: Level
-  ) = {
-    for (i <- 0 until level.vector.size;
-         j <- 0 until level.vector.head.size)
-      yield
-        new Rectangle {
-          width = squareSize
-          height = squareSize
-          x = j * squareSize
-          y = i * squareSize
-          fill = fieldToColorMap(level.vector(i)(j))
-        }
   }
 
   override def stopApp(): Unit = {
