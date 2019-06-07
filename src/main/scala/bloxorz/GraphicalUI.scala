@@ -71,6 +71,16 @@ object GraphicalUI extends JFXApp {
   val levelNames = levelNameFileMap.keySet.toList.sorted
   assert(!levelNames.isEmpty)
 
+  def awsdInput(e: KeyEvent): Option[Move] = {
+    e.code match {
+      case KeyCode.W => Some(Up)
+      case KeyCode.S => Some(Down)
+      case KeyCode.A => Some(Left)
+      case KeyCode.D => Some(Right)
+      case _         => None
+    }
+  }
+
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
     width = 400
@@ -93,12 +103,9 @@ object GraphicalUI extends JFXApp {
             levels.tail
           )
           playScene.onKeyPressed = (e: KeyEvent) => {
-            e.code match {
-              case KeyCode.W => moveQueue.put(Up)
-              case KeyCode.S => moveQueue.put(Down)
-              case KeyCode.A => moveQueue.put(Left)
-              case KeyCode.D => moveQueue.put(Right)
-              case _         =>
+            awsdInput(e) match {
+              case Some(move) => moveQueue.put(move)
+              case _          =>
             }
           }
           setScene(playScene)
@@ -156,35 +163,35 @@ object GraphicalUI extends JFXApp {
         nextLevelList: List[Level]
     ): Scene =
       new Scene(400, 400) {
-        new GameThread(
-          level,
-          block => Platform.runLater(moveBlock(block)),
-          () => moveQueue.take(),
-          gameResult => {
-            Thread.sleep(500)
-            gameResult match {
-              case Win =>
-                nextLevelList match {
-                  case List() => Platform.runLater(setScene(menuScene))
-                  case head :: tail =>
-                    Platform.runLater {
-                      val scene = gameScene(head, moveQueue, tail)
-                      scene.onKeyPressed = (e: KeyEvent) => {
-                        e.code match {
-                          case KeyCode.W => moveQueue.put(Up)
-                          case KeyCode.S => moveQueue.put(Down)
-                          case KeyCode.A => moveQueue.put(Left)
-                          case KeyCode.D => moveQueue.put(Right)
-                          case _         =>
+        val thread =
+          new GameThread(
+            level,
+            block => Platform.runLater(moveBlock(block)),
+            () => moveQueue.take(),
+            gameResult => {
+              Thread.sleep(500)
+              gameResult match {
+                case Win =>
+                  nextLevelList match {
+                    case List() => Platform.runLater(setScene(menuScene))
+                    case head :: tail =>
+                      Platform.runLater {
+                        val scene = gameScene(head, moveQueue, tail)
+                        scene.onKeyPressed = (e: KeyEvent) => {
+                          awsdInput(e) match {
+                            case Some(move) => moveQueue.put(move)
+                            case _          =>
+                          }
                         }
+                        setScene(scene)
                       }
-                      setScene(scene)
-                    }
-                }
-              case Lose => Platform.runLater(setScene(menuScene))
+                  }
+                case Lose => Platform.runLater(setScene(menuScene))
+              }
             }
-          }
-        ).start()
+          )
+        gameThread = Some(thread)
+        thread.start()
 
         lazy val squareSize = width() / level.vector.head.size
 
@@ -232,7 +239,12 @@ object GraphicalUI extends JFXApp {
     // height onChange (show())
   }
 
+  var gameThread: Option[GameThread] = None
+
   override def stopApp(): Unit = {
-    // gameThread.stop()
+    gameThread match {
+      case Some(t) => t.stop()
+      case None    =>
+    }
   }
 }
