@@ -79,6 +79,7 @@ object GraphicalUI extends JFXApp {
 
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
+    resizable = false
 
     val menuScene: Scene = new Scene {
       val playButton = new Button("Play") {
