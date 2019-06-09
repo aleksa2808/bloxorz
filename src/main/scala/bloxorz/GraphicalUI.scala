@@ -77,16 +77,6 @@ object GraphicalUI extends JFXApp {
   val levelNames = levelNameFileMap.keySet.toList.sorted
   assert(!levelNames.isEmpty)
 
-  def awsdInput(e: KeyEvent): Option[Move] = {
-    e.code match {
-      case KeyCode.W => Some(Up)
-      case KeyCode.S => Some(Down)
-      case KeyCode.A => Some(Left)
-      case KeyCode.D => Some(Right)
-      case _         => None
-    }
-  }
-
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
 
@@ -209,6 +199,13 @@ object GraphicalUI extends JFXApp {
     }
 
     def setPlayScene(levels: List[GameDef]) = {
+      val awsdMap = Map[KeyCode, Move](
+        KeyCode.W -> Up,
+        KeyCode.S -> Down,
+        KeyCode.D -> Right,
+        KeyCode.A -> Left
+      )
+
       val moveQueue: BlockingQueue[Option[Move]] = new LinkedBlockingQueue
       val playScene: Scene = gameScene(
         levels.head,
@@ -217,7 +214,7 @@ object GraphicalUI extends JFXApp {
         false
       )
       playScene.onKeyPressed = (e: KeyEvent) => {
-        awsdInput(e) match {
+        awsdMap.get(e.code) match {
           case None =>
           case move => moveQueue.put(move)
         }
