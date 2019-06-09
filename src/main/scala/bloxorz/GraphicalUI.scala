@@ -248,7 +248,7 @@ object GraphicalUI extends JFXApp {
 
     def makeEditScene(level: GameDef): Scene =
       new Scene(400, 500) {
-        val editActions = Map[String, EditAction](
+        val editActions = Map[String, LocalEditAction](
           "Remove tile" -> RemoveTile,
           "Add tile" -> AddTile,
           "Set normal to weak" -> ReplaceNormalWithWeak,
@@ -291,15 +291,27 @@ object GraphicalUI extends JFXApp {
         actionCBox.getSelectionModel().selectFirst()
 
         lazy val menuPane = new Pane {
-          prefHeight = 70
-
           val finishButton = new Button("Finish") {
             layoutX = 20
             layoutY = 20
             onAction = (e: ActionEvent) => editQueue.put(None)
           }
 
-          children = List(finishButton, actionCBox)
+          val inverseButton = new Button("Inverse start and goal") {
+            layoutX = 20
+            layoutY = 80
+            onAction = (e: ActionEvent) =>
+              editQueue.put(Some(GlobalEdit(InverseLevel)))
+          }
+
+          val switchButton = new Button("Normalise weak tiles") {
+            layoutX = 20
+            layoutY = 110
+            onAction = (e: ActionEvent) =>
+              editQueue.put(Some(GlobalEdit(SwitchWeak)))
+          }
+
+          children = List(finishButton, actionCBox, inverseButton, switchButton)
         }
 
         def board(level: GameDef) =
@@ -323,7 +335,7 @@ object GraphicalUI extends JFXApp {
                 Math.floor(e.x / squareSize).toInt
               )
             println(pos)
-            editQueue.put(Some(Edit(pos, editActions(actionCBox.value()))))
+            editQueue.put(Some(LocalEdit(pos, editActions(actionCBox.value()))))
           }
         }
 
