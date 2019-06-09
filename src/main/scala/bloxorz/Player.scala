@@ -9,16 +9,21 @@ object Player {
   def play(
       level: GameDef,
       reportBlockState: Block => Unit,
-      nextMove: => Move
+      nextMove: => Option[Move]
   ) = {
     @tailrec
     def loop(block: Block): GameResult = {
       reportBlockState(block)
 
       block match {
-        case block if level.done(block)            => Win
-        case block if block.isLegal(level.terrain) => loop(block.move(nextMove))
-        case _                                     => Lose
+        case block if level.done(block) => Win
+        case block if block.isLegal(level.terrain) => {
+          nextMove match {
+            case Some(move) => loop(block.move(move))
+            case None       => Lose // no more moves
+          }
+        }
+        case _ => Lose
       }
     }
     loop(level.startBlock)

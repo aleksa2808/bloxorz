@@ -38,7 +38,7 @@ class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 class GameThread(
     level: GameDef,
     reportBlockState: Block => Unit,
-    getNextMove: () => Move,
+    getNextMove: () => Option[Move],
     endCallback: GameResult => Unit
 ) extends Thread {
   override def run() {
@@ -61,6 +61,18 @@ object GraphicalUI extends JFXApp {
     Weak -> Color.LIGHTSALMON,
     Nil -> Color.LIGHTGREEN
   )
+
+  def board(level: GameDef, squareSize: Double) =
+    for (i <- 0 until level.vector.size;
+         j <- 0 until level.vector.head.size)
+      yield
+        new Rectangle {
+          width = squareSize
+          height = squareSize
+          x = j * squareSize
+          y = i * squareSize
+          fill = fieldToColorMap(level.vector(i)(j))
+        }
 
   val levelNameFileMap = new File("/home/murtaugh/master/fp/levels").listFiles
     .filter(_.isFile)
@@ -93,10 +105,8 @@ object GraphicalUI extends JFXApp {
           val levels = levelNames
             .dropWhile(_ != levelCBox.value())
             .map(lName => new FileLevel(levelNameFileMap(lName)))
-          // new Level(levelNameFileMap(levelCBox.value()))
 
-          val playScene = setupPlayScene(levels)
-          setScene(playScene)
+          setPlayScene(levels)
         }
       }
 
@@ -126,19 +136,22 @@ object GraphicalUI extends JFXApp {
                   val moveList =
                     fileLines.map(line => charMoveMap(line.head))
 
-                  val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+                  val moveQueue: BlockingQueue[Option[Move]] =
+                    new LinkedBlockingQueue
+
                   val fileScene: Scene = gameScene(
                     level,
                     moveQueue,
                     List(),
-                    300
+                    true
                   )
 
                   setScene(fileScene)
 
                   for (m <- moveList) {
-                    moveQueue.put(m)
+                    moveQueue.put(Some(m))
                   }
+                  moveQueue.put(None)
                 }
               }
             }
@@ -151,18 +164,20 @@ object GraphicalUI extends JFXApp {
           val level = new FileLevel(levelNameFileMap(levelCBox.value()))
           new Solver(level).solution match {
             case Some(s) => {
-              val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+              val moveQueue: BlockingQueue[Option[Move]] =
+                new LinkedBlockingQueue
+
               val solveScene: Scene = gameScene(
                 level,
                 moveQueue,
                 List(),
-                300
+                true
               )
 
               setScene(solveScene)
 
               for (m <- s) {
-                moveQueue.put(m)
+                moveQueue.put(Some(m))
               }
             }
             case None => println("Level isn't solvable")
@@ -202,28 +217,28 @@ object GraphicalUI extends JFXApp {
       )
     }
 
-    def setupPlayScene(levels: List[GameDef]) = {
-      val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+    def setPlayScene(levels: List[GameDef]) = {
+      val moveQueue: BlockingQueue[Option[Move]] = new LinkedBlockingQueue
       val playScene: Scene = gameScene(
         levels.head,
         moveQueue,
         levels.tail,
-        0
+        false
       )
       playScene.onKeyPressed = (e: KeyEvent) => {
         awsdInput(e) match {
-          case Some(move) => moveQueue.put(move)
-          case _          =>
+          case None =>
+          case move => moveQueue.put(move)
         }
       }
-      playScene
+      setScene(playScene)
     }
 
     def gameScene(
         level: GameDef,
-        moveQueue: BlockingQueue[Move],
+        moveQueue: BlockingQueue[Option[Move]],
         nextLevelList: List[GameDef],
-        moveDelay: Int
+        moveDelay: Boolean
     ): Scene =
       new Scene(400, 400) {
         val gameThread =
@@ -232,7 +247,10 @@ object GraphicalUI extends JFXApp {
             block => Platform.runLater(moveBlock(block)),
             () => {
               val move = moveQueue.take
-              Thread.sleep(moveDelay)
+              moveDelay match {
+                case true  => Thread.sleep(300)
+                case false =>
+              }
               move
             },
             gameResult => {
@@ -241,17 +259,7 @@ object GraphicalUI extends JFXApp {
                 case Win =>
                   nextLevelList match {
                     case List() => Platform.runLater(setScene(menuScene))
-                    case head :: tail =>
-                      Platform.runLater {
-                        val scene = gameScene(head, moveQueue, tail, 0)
-                        scene.onKeyPressed = (e: KeyEvent) => {
-                          awsdInput(e) match {
-                            case Some(move) => moveQueue.put(move)
-                            case _          =>
-                          }
-                        }
-                        setScene(scene)
-                      }
+                    case _      => Platform.runLater(setPlayScene(nextLevelList))
                   }
                 case Lose => Platform.runLater(setScene(menuScene))
               }
@@ -262,18 +270,6 @@ object GraphicalUI extends JFXApp {
 
         lazy val squareSize = width() / level.vector.head.size
 
-        lazy val board =
-          for (i <- 0 until level.vector.size;
-               j <- 0 until level.vector.head.size)
-            yield
-              new Rectangle {
-                width = squareSize
-                height = squareSize
-                x = j * squareSize
-                y = i * squareSize
-                fill = fieldToColorMap(level.vector(i)(j))
-              }
-
         lazy val blockRect = new Rectangle {
           width = squareSize * (1 + (level.startBlock.b2.col - level.startBlock.b1.col))
           height = squareSize * (1 + (level.startBlock.b2.row - level.startBlock.b1.row))
@@ -283,7 +279,7 @@ object GraphicalUI extends JFXApp {
         }
 
         lazy val gamePane: Pane = new Pane {
-          children = board :+ blockRect
+          children = board(level, squareSize) :+ blockRect
         }
 
         content = gamePane
@@ -318,12 +314,13 @@ object GraphicalUI extends JFXApp {
               val editedLevel = Editor.editLevel(
                 level,
                 modifiedLevel =>
-                  Platform.runLater(boardPane.children = board(modifiedLevel)),
+                  Platform.runLater(
+                    boardPane.children = board(modifiedLevel, squareSize)
+                  ),
                 editQueue.take
               )
 
-              val playScene = setupPlayScene(List(editedLevel))
-              Platform.runLater(setScene(playScene))
+              Platform.runLater(setPlayScene(List(editedLevel)))
             } catch {
               case e: IllegalMonitorStateException =>
                 println("editor thread stopped")
@@ -365,20 +362,8 @@ object GraphicalUI extends JFXApp {
           children = List(finishButton, actionCBox, inverseButton, switchButton)
         }
 
-        def board(level: GameDef) =
-          for (i <- 0 until level.vector.size;
-               j <- 0 until level.vector.head.size)
-            yield
-              new Rectangle {
-                width = squareSize
-                height = squareSize
-                x = j * squareSize
-                y = i * squareSize
-                fill = fieldToColorMap(level.vector(i)(j))
-              }
-
         lazy val boardPane: Pane = new Pane {
-          children = board(level)
+          children = board(level, squareSize)
           onMouseClicked = (e: MouseEvent) => {
             val pos =
               Pos(

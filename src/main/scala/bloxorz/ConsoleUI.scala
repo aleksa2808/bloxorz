@@ -94,12 +94,13 @@ object ConsoleUI {
   }
 
   @tailrec
-  def getNextMove: Move =
-    readOption("""|  a s w d""".stripMargin) match {
-      case "a" => Left
-      case "s" => Down
-      case "w" => Up
-      case "d" => Right
+  def getNextMove: Option[Move] =
+    readOption("""|  a s w d / e for exit""".stripMargin) match {
+      case "a" => Some(Left)
+      case "s" => Some(Down)
+      case "w" => Some(Up)
+      case "d" => Some(Right)
+      case "e" => None
       case _ => {
         println("Invalid action.")
         getNextMove
