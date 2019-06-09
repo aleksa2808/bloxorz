@@ -53,6 +53,7 @@ object GraphicalUI extends JFXApp {
     Nil -> Color.LIGHTGREEN
   )
 
+  val boardWidth = 400
   def board(level: GameDef, squareSize: Double) =
     for (i <- 0 until level.vector.size;
          j <- 0 until level.vector.head.size)
@@ -65,12 +66,13 @@ object GraphicalUI extends JFXApp {
           fill = fieldToColorMap(level.vector(i)(j))
         }
 
-  val levelNameFileMap = new File("/home/murtaugh/master/fp/levels").listFiles
-    .filter(_.isFile)
-    .toList
-    .sortBy(f => f.getName())
-    .map(f => f.getName() -> f.getCanonicalPath())
-    .toMap
+  val levelNameFileMap =
+    new File("C:\\Users\\pavlo\\source\\scala\\bloxorz\\levels").listFiles
+      .filter(_.isFile)
+      .toList
+      .sortBy(f => f.getName())
+      .map(f => f.getName() -> f.getCanonicalPath())
+      .toMap
 
   val levelNames = levelNameFileMap.keySet.toList.sorted
   assert(!levelNames.isEmpty)
@@ -87,10 +89,8 @@ object GraphicalUI extends JFXApp {
 
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
-    width = 400
-    height = 400
 
-    val menuScene: Scene = new Scene(width(), height()) {
+    val menuScene: Scene = new Scene {
       val playButton = new Button("Play") {
         onAction = (e: ActionEvent) => {
           val levels = levelNames
@@ -259,7 +259,7 @@ object GraphicalUI extends JFXApp {
         gameThread.setDaemon(true)
         gameThread.start()
 
-        lazy val squareSize = 400 / level.vector.head.size
+        lazy val squareSize = boardWidth / level.vector.head.size
 
         lazy val blockRect = new Rectangle {
           width = squareSize * (1 + (level.startBlock.b2.col - level.startBlock.b1.col))
@@ -285,7 +285,7 @@ object GraphicalUI extends JFXApp {
       }
 
     def makeEditScene(level: GameDef): Scene =
-      new Scene(400, 500) {
+      new Scene {
         val editActions = Map[String, LocalEditAction](
           "Remove tile" -> RemoveTile,
           "Add tile" -> AddTile,
@@ -321,36 +321,32 @@ object GraphicalUI extends JFXApp {
         editThread.setDaemon(true)
         editThread.start()
 
-        lazy val squareSize = width() / level.vector.head.size
+        lazy val squareSize = boardWidth / level.vector.head.size
 
-        val actionCBox = new ComboBox(editActionList) {
-          layoutX = 20
-          layoutY = 50
-        }
+        val actionCBox = new ComboBox(editActionList)
         actionCBox.getSelectionModel().selectFirst()
 
         lazy val menuPane = new Pane {
           val finishButton = new Button("Finish") {
-            layoutX = 20
-            layoutY = 20
             onAction = (e: ActionEvent) => editQueue.put(None)
           }
 
           val inverseButton = new Button("Inverse start and goal") {
-            layoutX = 20
-            layoutY = 80
             onAction = (e: ActionEvent) =>
               editQueue.put(Some(GlobalEdit(InverseLevel)))
           }
 
           val switchButton = new Button("Normalise weak tiles") {
-            layoutX = 20
-            layoutY = 110
             onAction = (e: ActionEvent) =>
               editQueue.put(Some(GlobalEdit(SwitchWeak)))
           }
 
-          children = List(finishButton, actionCBox, inverseButton, switchButton)
+          children = new VBox {
+            padding = Insets(15, 12, 15, 12)
+            spacing = 10
+            children =
+              List(finishButton, actionCBox, inverseButton, switchButton)
+          }
         }
 
         lazy val boardPane: Pane = new Pane {
