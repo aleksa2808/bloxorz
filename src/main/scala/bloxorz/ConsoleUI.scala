@@ -4,10 +4,7 @@ import scala.annotation.tailrec
 import java.io.File
 
 object ConsoleUI {
-  class Level(val filePath: String)
-      extends GameDef
-      with FileParserTerrain
-      with Playable
+  class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
   val blockChar = 'B'
   val fieldToCharMap = Map[Field, Char](
@@ -52,7 +49,7 @@ object ConsoleUI {
   def getListOfFiles(dir: File): List[File] =
     dir.listFiles.filter(_.isFile).toList
 
-  def chooseLevel(): Level = {
+  def chooseLevel(): GameDef = {
     val levelFiles =
       getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
         .sortBy(f => f.getName())
@@ -65,12 +62,12 @@ object ConsoleUI {
     printAvailableLevels()
 
     @tailrec
-    def getLevel(): Level = {
+    def getLevel(): GameDef = {
       val input = scala.io.StdIn.readLine()
       levelFiles.find(_.getName() == input) match {
         case Some(file) => {
           val levelFilePath = file.getCanonicalPath()
-          new Level(levelFilePath)
+          new FileLevel(levelFilePath)
         }
         case None => {
           println("Invalid input")
@@ -82,7 +79,7 @@ object ConsoleUI {
     getLevel()
   }
 
-  def printLevel(level: Level)(block: Block) = {
+  def printLevel(level: GameDef)(block: Block) = {
     val Block(b1, b2) = block
     for (r <- 0 until level.vector.size) {
       for (c <- 0 until level.vector(r).size) {
@@ -111,7 +108,7 @@ object ConsoleUI {
 
   def playLevel() = {
     val level = chooseLevel()
-    level.play(printLevel(level), getNextMove) match {
+    Player.play(level, printLevel(level), getNextMove) match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }

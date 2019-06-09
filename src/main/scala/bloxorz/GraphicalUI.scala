@@ -29,20 +29,17 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.io.File
 import scalafx.scene.control.ComboBox
 
-class Level(val filePath: String)
-    extends GameDef
-    with FileParserTerrain
-    with Playable
+class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
 class GameThread(
-    level: Level,
+    level: GameDef,
     reportBlockState: Block => Unit,
     getNextMove: () => Move,
     endCallback: GameResult => Unit
 ) extends Thread {
   override def run() {
     try {
-      val gameResult = level.play(reportBlockState, getNextMove())
+      val gameResult = Player.play(level, reportBlockState, getNextMove())
       endCallback(gameResult)
     } catch {
       case e: IllegalMonitorStateException =>
@@ -93,7 +90,7 @@ object GraphicalUI extends JFXApp {
         onAction = (e: ActionEvent) => {
           val levels = levelNames
             .dropWhile(_ != levelCBox.value())
-            .map(lName => new Level(levelNameFileMap(lName)))
+            .map(lName => new FileLevel(levelNameFileMap(lName)))
           // new Level(levelNameFileMap(levelCBox.value()))
 
           val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
@@ -116,7 +113,7 @@ object GraphicalUI extends JFXApp {
         layoutX = 100
         layoutY = 20
         onAction = (e: ActionEvent) => {
-          val level = new Level(levelNameFileMap(levelCBox.value()))
+          val level = new FileLevel(levelNameFileMap(levelCBox.value()))
           new Solver(level).solution match {
             case Some(s) => {
               val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
@@ -158,9 +155,9 @@ object GraphicalUI extends JFXApp {
     }
 
     def gameScene(
-        level: Level,
+        level: GameDef,
         moveQueue: BlockingQueue[Move],
-        nextLevelList: List[Level]
+        nextLevelList: List[GameDef]
     ): Scene =
       new Scene(400, 400) {
         val thread =
