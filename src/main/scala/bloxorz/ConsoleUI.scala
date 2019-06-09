@@ -119,8 +119,7 @@ object ConsoleUI {
   }
 
   def editLevel(level: GameDef) = {
-    val edit = LocalEdit(level.startPos, PlaceGoalTile)
-    val editedLevel = Editor.doEdit(level, edit)
+    val editedLevel = Editor.doEdit(level, GlobalEdit(InverseLevel))
 
     playLevel(editedLevel)
   }

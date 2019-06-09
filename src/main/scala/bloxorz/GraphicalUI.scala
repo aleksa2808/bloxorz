@@ -30,6 +30,8 @@ import java.io.File
 import scalafx.scene.control.ComboBox
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.VBox
+import scalafx.stage.FileChooser
+import scala.io.Source
 
 class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
@@ -87,8 +89,6 @@ object GraphicalUI extends JFXApp {
 
     val menuScene: Scene = new Scene(width(), height()) {
       val playButton = new Button("Play") {
-        layoutX = 20
-        layoutY = 20
         onAction = (e: ActionEvent) => {
           val levels = levelNames
             .dropWhile(_ != levelCBox.value())
@@ -100,9 +100,53 @@ object GraphicalUI extends JFXApp {
         }
       }
 
+      val fileButton: Button = new Button("Load solution") {
+        onAction = (e: ActionEvent) => {
+          val fileChooser = new FileChooser
+          val solutionFile = fileChooser.showOpenDialog(stage)
+
+          solutionFile match {
+            case null => println("No file selected")
+            case _ => {
+              val charMoveMap = Map[Char, Move](
+                'u' -> Up,
+                'd' -> Down,
+                'l' -> Left,
+                'r' -> Right
+              )
+
+              val fileLines = Source.fromFile(solutionFile).getLines.toList
+              fileLines.forall(
+                line =>
+                  line.length() == 1 && charMoveMap.keySet.contains(line.head)
+              ) match {
+                case false => println("Invalid solution file format")
+                case true => {
+                  val level = new FileLevel(levelNameFileMap(levelCBox.value()))
+                  val moveList =
+                    fileLines.map(line => charMoveMap(line.head))
+
+                  val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+                  val fileScene: Scene = gameScene(
+                    level,
+                    moveQueue,
+                    List(),
+                    300
+                  )
+
+                  setScene(fileScene)
+
+                  for (m <- moveList) {
+                    moveQueue.put(m)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       val solveButton: Button = new Button("Solve") {
-        layoutX = 80
-        layoutY = 20
         onAction = (e: ActionEvent) => {
           val level = new FileLevel(levelNameFileMap(levelCBox.value()))
           new Solver(level).solution match {
@@ -111,22 +155,15 @@ object GraphicalUI extends JFXApp {
               val solveScene: Scene = gameScene(
                 level,
                 moveQueue,
-                List()
+                List(),
+                300
               )
 
-              // Solver thread
-              val solverThread = new Thread {
-                override def run() {
-                  for (m <- s) {
-                    Thread.sleep(400)
-                    moveQueue.put(m)
-                  }
-                }
-              }
-              solverThread.setDaemon(true)
-              solverThread.start()
-
               setScene(solveScene)
+
+              for (m <- s) {
+                moveQueue.put(m)
+              }
             }
             case None => println("Level isn't solvable")
           }
@@ -134,8 +171,6 @@ object GraphicalUI extends JFXApp {
       }
 
       val editButton: Button = new Button("Edit") {
-        layoutX = 140
-        layoutY = 20
         onAction = (e: ActionEvent) => {
           val pickedLevel = new FileLevel(levelNameFileMap(levelCBox.value()))
           val editScene: Scene = makeEditScene(pickedLevel)
@@ -143,18 +178,28 @@ object GraphicalUI extends JFXApp {
         }
       }
 
-      val levelLabel = new Label("Level:") {
-        layoutX = 20
-        layoutY = 50
-      }
+      val levelLabel = new Label("Level:")
 
-      val levelCBox = new ComboBox(levelNames) {
-        layoutX = 20
-        layoutY = 80
-      }
+      val levelCBox = new ComboBox(levelNames)
       levelCBox.getSelectionModel().selectFirst()
 
-      content = List(playButton, solveButton, editButton, levelLabel, levelCBox)
+      content = new VBox(
+        new HBox {
+          padding = Insets(15, 12, 15, 12)
+          spacing = 10
+          children = List(
+            playButton,
+            fileButton,
+            solveButton,
+            editButton
+          )
+        },
+        new HBox {
+          padding = Insets(0, 12, 15, 12)
+          spacing = 10
+          children = List(levelLabel, levelCBox)
+        }
+      )
     }
 
     def setupPlayScene(levels: List[GameDef]) = {
@@ -162,7 +207,8 @@ object GraphicalUI extends JFXApp {
       val playScene: Scene = gameScene(
         levels.head,
         moveQueue,
-        levels.tail
+        levels.tail,
+        0
       )
       playScene.onKeyPressed = (e: KeyEvent) => {
         awsdInput(e) match {
@@ -176,14 +222,19 @@ object GraphicalUI extends JFXApp {
     def gameScene(
         level: GameDef,
         moveQueue: BlockingQueue[Move],
-        nextLevelList: List[GameDef]
+        nextLevelList: List[GameDef],
+        moveDelay: Int
     ): Scene =
       new Scene(400, 400) {
         val gameThread =
           new GameThread(
             level,
             block => Platform.runLater(moveBlock(block)),
-            moveQueue.take,
+            () => {
+              val move = moveQueue.take
+              Thread.sleep(moveDelay)
+              move
+            },
             gameResult => {
               Thread.sleep(500)
               gameResult match {
@@ -192,7 +243,7 @@ object GraphicalUI extends JFXApp {
                     case List() => Platform.runLater(setScene(menuScene))
                     case head :: tail =>
                       Platform.runLater {
-                        val scene = gameScene(head, moveQueue, tail)
+                        val scene = gameScene(head, moveQueue, tail, 0)
                         scene.onKeyPressed = (e: KeyEvent) => {
                           awsdInput(e) match {
                             case Some(move) => moveQueue.put(move)
@@ -334,7 +385,6 @@ object GraphicalUI extends JFXApp {
                 Math.floor((e.y) / squareSize).toInt,
                 Math.floor(e.x / squareSize).toInt
               )
-            println(pos)
             editQueue.put(Some(LocalEdit(pos, editActions(actionCBox.value()))))
           }
         }
