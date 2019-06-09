@@ -16,7 +16,7 @@ object ConsoleUI {
   )
 
   val actions =
-    Map[String, () => Unit](
+    Map[String, GameDef => Unit](
       "1" -> playLevel,
       "2" -> solveLevel,
       "3" -> editLevel
@@ -38,7 +38,7 @@ object ConsoleUI {
       case "0" =>
       case option =>
         actions.get(option) match {
-          case Some(f) => f()
+          case Some(f) => f(chooseLevel())
           case None =>
             println("Invalid input")
         }
@@ -106,31 +106,23 @@ object ConsoleUI {
       }
     }
 
-  def playLevel() = {
-    val level = chooseLevel()
+  def playLevel(level: GameDef) = {
     Player.play(level, printLevel(level), getNextMove) match {
       case Win  => println("You win!")
       case Lose => println("You lose!")
     }
   }
 
-  def solveLevel() = {
-    val level = chooseLevel()
+  def solveLevel(level: GameDef) = {
     val solver = new Solver(level)
     println(solver.solution)
   }
 
-  def editLevel() = {
-    val level = chooseLevel()
+  def editLevel(level: GameDef) = {
     val edit = Edit(level.startPos, PlaceGoalTile)
     val editedLevel = Editor.editLevel(level, edit)
 
-    val editedLevelString =
-      editedLevel.vector
-        .map(_.map(f => fieldToCharMap(f)).mkString)
-        .mkString("\n")
-
-    println(editedLevelString)
+    playLevel(editedLevel)
   }
 
   def main(args: Array[String]) {
