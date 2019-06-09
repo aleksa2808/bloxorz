@@ -1,10 +1,5 @@
 package bloxorz
 
-import akka.actor.Actor
-import akka.actor.ActorSystem
-import akka.actor.Props
-import scala.annotation.tailrec
-import java.util.Scanner
 import javafx.scene.paint.Color
 import scalafx.Includes._
 import scalafx.application.JFXApp
@@ -15,15 +10,11 @@ import scalafx.stage.Stage
 import scalafx.scene.Scene
 import scalafx.scene.control.Button
 import scalafx.scene.control.Label
-import scalafx.scene.layout.BorderPane
 import scalafx.scene.layout.HBox
 import scalafx.scene.layout.Pane
-import scalafx.scene.shape.Circle
 import scalafx.scene.shape.Rectangle
-import akka.actor.ActorRef
 import scalafx.scene.input.KeyEvent
 import scalafx.scene.input.KeyCode
-import akka.util.BoundedBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.io.File
@@ -240,7 +231,7 @@ object GraphicalUI extends JFXApp {
         nextLevelList: List[GameDef],
         moveDelay: Boolean
     ): Scene =
-      new Scene(400, 400) {
+      new Scene {
         val gameThread =
           new GameThread(
             level,
@@ -268,7 +259,7 @@ object GraphicalUI extends JFXApp {
         gameThread.setDaemon(true)
         gameThread.start()
 
-        lazy val squareSize = width() / level.vector.head.size
+        lazy val squareSize = 400 / level.vector.head.size
 
         lazy val blockRect = new Rectangle {
           width = squareSize * (1 + (level.startBlock.b2.col - level.startBlock.b1.col))
