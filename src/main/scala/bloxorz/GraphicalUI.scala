@@ -285,8 +285,8 @@ object GraphicalUI extends JFXApp {
         lazy val squareSize = width() / level.vector.head.size
 
         val actionCBox = new ComboBox(editActionList) {
-          layoutX = 80
-          layoutY = 20
+          layoutX = 20
+          layoutY = 50
         }
         actionCBox.getSelectionModel().selectFirst()
 
@@ -327,8 +327,8 @@ object GraphicalUI extends JFXApp {
           }
         }
 
-        content = new VBox {
-          children = List(menuPane, boardPane)
+        content = new HBox {
+          children = List(boardPane, menuPane)
         }
       }
 
@@ -336,8 +336,5 @@ object GraphicalUI extends JFXApp {
       scene = s
     }
     setScene(menuScene)
-
-    // width onChange (show())
-    // height onChange (show())
   }
 }
