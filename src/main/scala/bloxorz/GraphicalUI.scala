@@ -115,14 +115,16 @@ object GraphicalUI extends JFXApp {
               )
 
               // Solver thread
-              new Thread {
+              val solverThread = new Thread {
                 override def run() {
                   for (m <- s) {
                     Thread.sleep(400)
                     moveQueue.put(m)
                   }
                 }
-              }.start()
+              }
+              solverThread.setDaemon(true)
+              solverThread.start()
 
               setScene(solveScene)
             }
@@ -181,7 +183,7 @@ object GraphicalUI extends JFXApp {
           new GameThread(
             level,
             block => Platform.runLater(moveBlock(block)),
-            () => moveQueue.take(),
+            moveQueue.take,
             gameResult => {
               Thread.sleep(500)
               gameResult match {
@@ -204,7 +206,7 @@ object GraphicalUI extends JFXApp {
               }
             }
           )
-        bgThread = Some(gameThread)
+        gameThread.setDaemon(true)
         gameThread.start()
 
         lazy val squareSize = width() / level.vector.head.size
@@ -277,7 +279,7 @@ object GraphicalUI extends JFXApp {
             }
           }
         }
-        bgThread = Some(editThread)
+        editThread.setDaemon(true)
         editThread.start()
 
         lazy val squareSize = width() / level.vector.head.size
@@ -337,14 +339,5 @@ object GraphicalUI extends JFXApp {
 
     // width onChange (show())
     // height onChange (show())
-  }
-
-  var bgThread: Option[Thread] = None
-
-  override def stopApp(): Unit = {
-    bgThread match {
-      case Some(t) => t.stop()
-      case None    =>
-    }
   }
 }
