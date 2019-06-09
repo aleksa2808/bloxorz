@@ -1,4 +1,5 @@
 package bloxorz
+import scala.annotation.tailrec
 
 sealed abstract class EditAction
 case object RemoveTile extends EditAction
@@ -27,44 +28,43 @@ object Editor {
         }
     }
 
-  def editLevel(level: GameDef, edit: Edit): GameDef = {
+  def edit(level: GameDef, edit: Edit): GameDef = {
     val Edit(pos, action) = edit
     require(pos.row >= 0 && pos.row < level.vector.size)
     require(pos.col >= 0 && pos.col < level.vector.head.size)
 
-    val curVector = level.vector
     val newVector = action match {
       case RemoveTile =>
         level.terrain(pos) match {
-          case Normal | Weak => updatedVector(curVector, pos, Nil)
-          case Nil           => curVector
+          case Normal | Weak => updatedVector(level.vector, pos, Nil)
+          case Nil           => level.vector
           case _ => {
             println("Cannot remove that tile")
-            curVector
+            level.vector
           }
         }
       case AddTile =>
         level.terrain(pos) match {
-          case Nil => updatedVector(curVector, pos, Normal)
+          case Nil => updatedVector(level.vector, pos, Normal)
           case _ => {
             println("Cannot place a tile there")
-            curVector
+            level.vector
           }
         }
       case ReplaceNormalWithWeak =>
         level.terrain(pos) match {
-          case Normal => updatedVector(curVector, pos, Weak)
+          case Normal => updatedVector(level.vector, pos, Weak)
           case _ => {
             println("Cannot place a weak tile there")
-            curVector
+            level.vector
           }
         }
       case ReplaceWeakWithNormal =>
         level.terrain(pos) match {
-          case Weak => updatedVector(curVector, pos, Normal)
+          case Weak => updatedVector(level.vector, pos, Normal)
           case _ => {
             println("Cannot place a normal tile there")
-            curVector
+            level.vector
           }
         }
       case PlaceStartTile =>
@@ -73,7 +73,7 @@ object Editor {
           case _    => Normal
         }
         val blankStart =
-          updatedVector(curVector, level.startPos, replacementTile)
+          updatedVector(level.vector, level.startPos, replacementTile)
         updatedVector(blankStart, pos, Start)
       case PlaceGoalTile =>
         val replacementTile = level.terrain(pos) match {
@@ -81,10 +81,27 @@ object Editor {
           case _     => Normal
         }
         val blankGoal =
-          updatedVector(curVector, level.goal, replacementTile)
+          updatedVector(level.vector, level.goal, replacementTile)
         updatedVector(blankGoal, pos, Goal)
     }
 
     new AssignableTerrain(newVector)
+  }
+
+  def editLevel(
+      level: GameDef,
+      reportState: GameDef => Unit,
+      getEditAction: () => Option[Edit]
+  ): GameDef = {
+    @tailrec
+    def loop(level: GameDef): GameDef = {
+      reportState(level)
+
+      getEditAction() match {
+        case Some(e) => loop(edit(level, e))
+        case None    => level
+      }
+    }
+    loop(level)
   }
 }

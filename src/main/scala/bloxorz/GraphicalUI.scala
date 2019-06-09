@@ -28,6 +28,8 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.io.File
 import scalafx.scene.control.ComboBox
+import scalafx.scene.input.MouseEvent
+import scalafx.scene.layout.VBox
 
 class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
@@ -93,24 +95,13 @@ object GraphicalUI extends JFXApp {
             .map(lName => new FileLevel(levelNameFileMap(lName)))
           // new Level(levelNameFileMap(levelCBox.value()))
 
-          val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
-          val playScene: Scene = gameScene(
-            levels.head,
-            moveQueue,
-            levels.tail
-          )
-          playScene.onKeyPressed = (e: KeyEvent) => {
-            awsdInput(e) match {
-              case Some(move) => moveQueue.put(move)
-              case _          =>
-            }
-          }
+          val playScene = setupPlayScene(levels)
           setScene(playScene)
         }
       }
 
       val solveButton: Button = new Button("Solve") {
-        layoutX = 100
+        layoutX = 80
         layoutY = 20
         onAction = (e: ActionEvent) => {
           val level = new FileLevel(levelNameFileMap(levelCBox.value()))
@@ -140,6 +131,16 @@ object GraphicalUI extends JFXApp {
         }
       }
 
+      val editButton: Button = new Button("Edit") {
+        layoutX = 140
+        layoutY = 20
+        onAction = (e: ActionEvent) => {
+          val pickedLevel = new FileLevel(levelNameFileMap(levelCBox.value()))
+          val editScene: Scene = makeEditScene(pickedLevel)
+          setScene(editScene)
+        }
+      }
+
       val levelLabel = new Label("Level:") {
         layoutX = 20
         layoutY = 50
@@ -151,7 +152,23 @@ object GraphicalUI extends JFXApp {
       }
       levelCBox.getSelectionModel().selectFirst()
 
-      content = List(playButton, solveButton, levelLabel, levelCBox)
+      content = List(playButton, solveButton, editButton, levelLabel, levelCBox)
+    }
+
+    def setupPlayScene(levels: List[GameDef]) = {
+      val moveQueue: BlockingQueue[Move] = new LinkedBlockingQueue
+      val playScene: Scene = gameScene(
+        levels.head,
+        moveQueue,
+        levels.tail
+      )
+      playScene.onKeyPressed = (e: KeyEvent) => {
+        awsdInput(e) match {
+          case Some(move) => moveQueue.put(move)
+          case _          =>
+        }
+      }
+      playScene
     }
 
     def gameScene(
@@ -160,7 +177,7 @@ object GraphicalUI extends JFXApp {
         nextLevelList: List[GameDef]
     ): Scene =
       new Scene(400, 400) {
-        val thread =
+        val gameThread =
           new GameThread(
             level,
             block => Platform.runLater(moveBlock(block)),
@@ -187,8 +204,8 @@ object GraphicalUI extends JFXApp {
               }
             }
           )
-        gameThread = Some(thread)
-        thread.start()
+        bgThread = Some(gameThread)
+        gameThread.start()
 
         lazy val squareSize = width() / level.vector.head.size
 
@@ -227,6 +244,92 @@ object GraphicalUI extends JFXApp {
         }
       }
 
+    def makeEditScene(level: GameDef): Scene =
+      new Scene(400, 500) {
+        val editActions = Map[String, EditAction](
+          "Remove tile" -> RemoveTile,
+          "Add tile" -> AddTile,
+          "Set normal to weak" -> ReplaceNormalWithWeak,
+          "Set weak to normal" -> ReplaceWeakWithNormal,
+          "Place start tile" -> PlaceStartTile,
+          "Place goal tile" -> PlaceGoalTile
+        )
+        val editActionList: List[String] = editActions.keySet.toList
+
+        val editQueue: BlockingQueue[Option[Edit]] = new LinkedBlockingQueue
+
+        // Editor thread
+        val editThread = new Thread {
+          override def run() {
+            try {
+              val editedLevel = Editor.editLevel(
+                level,
+                modifiedLevel =>
+                  Platform.runLater(boardPane.children = board(modifiedLevel)),
+                editQueue.take
+              )
+
+              val playScene = setupPlayScene(List(editedLevel))
+              Platform.runLater(setScene(playScene))
+            } catch {
+              case e: IllegalMonitorStateException =>
+                println("editor thread stopped")
+            }
+          }
+        }
+        bgThread = Some(editThread)
+        editThread.start()
+
+        lazy val squareSize = width() / level.vector.head.size
+
+        val actionCBox = new ComboBox(editActionList) {
+          layoutX = 80
+          layoutY = 20
+        }
+        actionCBox.getSelectionModel().selectFirst()
+
+        lazy val menuPane = new Pane {
+          prefHeight = 70
+
+          val finishButton = new Button("Finish") {
+            layoutX = 20
+            layoutY = 20
+            onAction = (e: ActionEvent) => editQueue.put(None)
+          }
+
+          children = List(finishButton, actionCBox)
+        }
+
+        def board(level: GameDef) =
+          for (i <- 0 until level.vector.size;
+               j <- 0 until level.vector.head.size)
+            yield
+              new Rectangle {
+                width = squareSize
+                height = squareSize
+                x = j * squareSize
+                y = i * squareSize
+                fill = fieldToColorMap(level.vector(i)(j))
+              }
+
+        lazy val boardPane: Pane = new Pane {
+          children = board(level)
+          onMouseClicked = (e: MouseEvent) => {
+            val pos =
+              Pos(
+                Math.floor((e.y) / squareSize).toInt,
+                Math.floor(e.x / squareSize).toInt
+              )
+            println(pos)
+            editQueue.put(Some(Edit(pos, editActions(actionCBox.value()))))
+          }
+        }
+
+        content = new VBox {
+          children = List(menuPane, boardPane)
+        }
+      }
+
     def setScene(s: Scene) = {
       scene = s
     }
@@ -236,10 +339,10 @@ object GraphicalUI extends JFXApp {
     // height onChange (show())
   }
 
-  var gameThread: Option[GameThread] = None
+  var bgThread: Option[Thread] = None
 
   override def stopApp(): Unit = {
-    gameThread match {
+    bgThread match {
       case Some(t) => t.stop()
       case None    =>
     }
