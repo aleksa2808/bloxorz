@@ -46,28 +46,19 @@ object ConsoleUI {
     }
   }
 
-  def getListOfFiles(dir: File): List[File] =
-    dir.listFiles.filter(_.isFile).toList
-
   def chooseLevel(): GameDef = {
-    val levelFiles =
-      getListOfFiles(new File("/home/murtaugh/master/fp/levels"))
-        .sortBy(f => f.getName())
-
     def printAvailableLevels() = {
       println("Choose level:")
-      levelFiles.foreach(f => println("  " + f.getName()))
+      levelNames.foreach(n => println("  " + n))
     }
-
     printAvailableLevels()
 
     @tailrec
     def getLevel(): GameDef = {
       val input = scala.io.StdIn.readLine()
-      levelFiles.find(_.getName() == input) match {
-        case Some(file) => {
-          val levelFilePath = file.getCanonicalPath()
-          new FileLevel(levelFilePath)
+      levelNames.find(_ == input) match {
+        case Some(lname) => {
+          new FileLevel(levelNameFileMap(lname))
         }
         case None => {
           println("Invalid input")

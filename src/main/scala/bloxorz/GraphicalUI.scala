@@ -17,7 +17,6 @@ import scalafx.scene.input.KeyEvent
 import scalafx.scene.input.KeyCode
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
-import java.io.File
 import scalafx.scene.control.ComboBox
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.VBox
@@ -65,17 +64,6 @@ object GraphicalUI extends JFXApp {
           y = i * squareSize
           fill = fieldToColorMap(level.vector(i)(j))
         }
-
-  val levelNameFileMap =
-    new File("C:\\Users\\pavlo\\source\\scala\\bloxorz\\levels").listFiles
-      .filter(_.isFile)
-      .toList
-      .sortBy(f => f.getName())
-      .map(f => f.getName() -> f.getCanonicalPath())
-      .toMap
-
-  val levelNames = levelNameFileMap.keySet.toList.sorted
-  assert(!levelNames.isEmpty)
 
   stage = new JFXApp.PrimaryStage {
     title = "Bloxorz"
