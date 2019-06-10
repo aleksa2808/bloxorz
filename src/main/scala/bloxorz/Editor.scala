@@ -36,7 +36,7 @@ object Editor {
         }
     }
 
-  def doEdit(level: GameDef, edit: Edit): GameDef = {
+  private def doEdit(level: GameDef, edit: Edit): GameDef = {
     val newVector = edit match {
       case LocalEdit(pos, action) => {
         require(pos.row >= 0 && pos.row < level.vector.size)
