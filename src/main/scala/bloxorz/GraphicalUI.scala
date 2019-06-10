@@ -22,6 +22,7 @@ import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.VBox
 import scalafx.stage.FileChooser
 import scala.io.Source
+import collection.immutable.ListMap
 
 class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
@@ -272,7 +273,7 @@ object GraphicalUI extends JFXApp {
 
     def makeEditScene(level: GameDef): Scene =
       new Scene {
-        val editActions = Map[String, LocalEditAction](
+        val editActions = ListMap[String, LocalEditAction](
           "Remove tile" -> RemoveTile,
           "Add tile" -> AddTile,
           "Set normal to weak" -> ReplaceNormalWithWeak,
