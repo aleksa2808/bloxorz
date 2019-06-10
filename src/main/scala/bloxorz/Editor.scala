@@ -125,7 +125,14 @@ object Editor {
 
       getEditAction() match {
         case Some(e) => loop(doEdit(level, e))
-        case None    => level
+        case None =>
+          level.isValidFormat match {
+            case true => level
+            case false => {
+              println("Invalid level format, needs more editing")
+              loop(level)
+            }
+          }
       }
     }
     loop(level)

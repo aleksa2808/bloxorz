@@ -4,8 +4,6 @@ import scala.annotation.tailrec
 import java.io.File
 
 object ConsoleUI {
-  class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
-
   val blockChar = 'B'
   val fieldToCharMap = Map[Field, Char](
     Start -> 'S',

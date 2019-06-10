@@ -129,7 +129,8 @@ trait GameDef {
         checkIfExistsUnique(Goal) &&
         new Solver(GameDef.this).solution.isDefined
   }
-  require(new LevelFormatChecker(vector).check, "Invalid level format")
+
+  def isValidFormat = new LevelFormatChecker(vector).check
 
   lazy val terrain: Terrain = terrainFunction(vector)
   lazy val startPos: Pos = findUniqueField(Start, vector)

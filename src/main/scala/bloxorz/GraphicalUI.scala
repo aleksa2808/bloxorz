@@ -24,8 +24,6 @@ import scalafx.stage.FileChooser
 import scala.io.Source
 import collection.immutable.ListMap
 
-class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
-
 class GameThread(
     level: GameDef,
     reportBlockState: Block => Unit,
@@ -292,9 +290,13 @@ object GraphicalUI extends JFXApp {
               val editedLevel = Editor.editLevel(
                 level,
                 modifiedLevel =>
-                  Platform.runLater(
+                  Platform.runLater {
                     boardPane.children = board(modifiedLevel, squareSize)
-                  ),
+                    modifiedLevel.isValidFormat match {
+                      case true  => finishButton.setDisable(false)
+                      case false => finishButton.setDisable(true)
+                    }
+                  },
                 editQueue.take
               )
 
@@ -313,10 +315,11 @@ object GraphicalUI extends JFXApp {
         val actionCBox = new ComboBox(editActionList)
         actionCBox.getSelectionModel().selectFirst()
 
+        val finishButton = new Button("Finish") {
+          onAction = (e: ActionEvent) => editQueue.put(None)
+        }
+
         lazy val menuPane = new Pane {
-          val finishButton = new Button("Finish") {
-            onAction = (e: ActionEvent) => editQueue.put(None)
-          }
 
           val inverseButton = new Button("Inverse start and goal") {
             onAction = (e: ActionEvent) =>
