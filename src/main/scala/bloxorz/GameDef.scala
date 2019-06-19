@@ -94,10 +94,12 @@ trait GameDef {
     private val yMargin = 1
     private val xMargin = 2
 
+    private val maxWH = 100
+
     private def checkSize: Boolean =
-      level.size > 2 * yMargin + 1 &&
+      level.size > 2 * yMargin + 1 && level.size < maxWH
         level.forall(r => r.size == level.head.size) &&
-        level.head.size > 2 * xMargin + 1
+        level.head.size > 2 * xMargin + 1 && level.head.size < maxWH
 
     private def checkHorizontalMargins: Boolean =
       level.forall(

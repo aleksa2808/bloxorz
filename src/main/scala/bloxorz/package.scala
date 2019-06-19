@@ -5,7 +5,7 @@ package object bloxorz {
 
   class FileLevel(val filePath: String) extends GameDef with FileParserTerrain
 
-  val levelDirPath = "C:\\Users\\pavlo\\source\\scala\\bloxorz\\levels"
+  val levelDirPath = "levels"
   val levelNameFileMap =
     new File(levelDirPath).listFiles
       .filter(_.isFile)
